@@ -11,6 +11,8 @@ export default function Protected() {
   const [user, setUser] = useState(null);
 
   const [query, setQuery] = useState('');
+
+  const [myCase, setMyCase] = useState('');
   
   // NEW: Store chat messages between user and GROQ bot
   const [messages, setMessages] = useState([]);
@@ -64,6 +66,36 @@ export default function Protected() {
     }
   };
 
+
+  // NEW: Send user query to backend GROQ API and update chat messages
+  const generateCase = async (e) => {
+    e.preventDefault();
+
+    setLoading(true);
+    let botMessage
+
+    try {
+      // POST request to backend API with user's query
+      const res = await axios.post('/api/groq', { message: 'Generate me a new case.' });
+
+      // Add bot's reply to chat history (response from GROQ)
+      botMessage = res.data.reply;
+      
+    } catch (error) {
+      // Show error message if API call fails
+      botMessage = 'error';
+
+    } finally {
+      setLoading(false);
+      setMyCase(botMessage);
+    }
+  };
+
+
+
+
+
+
   return (
     <div className="min-h-screen bg-green-50 p-6 flex flex-col items-center">
       <div className="max-w-xl w-full bg-white rounded shadow p-6 mb-4">
@@ -112,6 +144,20 @@ export default function Protected() {
             Send
           </button>
         </form>
+        
+        {/* Generates a case using GROQ */}
+        <div>
+          <button 
+            onClick={generateCase}
+            disabled={loading}
+            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            Make New Case
+          </button>
+          <div className="mb-4 max-h-64 overflow-y-auto border p-4 rounded bg-gray-100">
+            {myCase}
+          </div>
+        </div>
       </div>
     </div>
   );
