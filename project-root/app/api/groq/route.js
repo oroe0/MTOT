@@ -28,11 +28,18 @@ export async function POST(req) {
                   'You are very humble, so you will not speak of yourself, and you will do exactly as you are told.'+
                   'You know all of the major cases from the last 100 years, and can take inspiration from them to make new cases. '+
 
-                  'When I ask you to generate a case, first give me a list of 5 witnesses in JSON format. '+
-                  'It should include the name of each witness, their title, and what events they might speak about. '+
-                  'After the witnesses, give me 6 pieces of non-spoken evidence from the trial, this might include relevant notes and letters, or basic pieces of DNA. '+
-                  'The non-spoken evidence should be provided in an array [], and each item of evidence should have a name and a description under 25 words. '+
-                  'If a piece of writing is provided, the entirety of what was written should be included in the description.'
+                  'When I ask you to generate a case, first give me a list of 5 witnesses in JSON format. Before the JSON file begins, you should put a @ character. '+
+                  'It should include the name of each witness, their title, what events they might speak about, and a witness statement that is under 100 words. '+
+                  'After the witness JSON file, you should put a @ character. '+
+
+                  'Then, give me 6 pieces of non-spoken evidence from the trial in JSON format. Before the JSON file begins, you should put a @ character. '+
+                  'Non-spoken evidence can include relevant notes and letters, or basic pieces of DNA. Each item of evidence should have a name and a description under 25 words. '+
+                  'If a piece of writing is provided, the entirety of what was written should be included in the description. '+
+                  'After the evidence JSON file, you should put a @ character. '+
+
+                  'Then, in square brackets, give me three strings seperated by commas. '+
+                  'The first should be the name of the prosecutor, the second should be the name of the defendent. '+
+                  'The third string should be a brief description of the case and what the defendent is accused of.'
         },
         // The user's message is what we want a response for
         { role: 'user', content: message },
