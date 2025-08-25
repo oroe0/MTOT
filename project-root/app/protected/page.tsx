@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
+
 export default function Protected() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -19,6 +20,8 @@ export default function Protected() {
 
   // NEW: Loading state to disable input during API call
   const [loading, setLoading] = useState(false);
+
+  const [firstName, setFirstName] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -87,7 +90,17 @@ export default function Protected() {
 
     } finally {
       setLoading(false);
-      setMyCase(botMessage);
+
+      const botMessageArray = botMessage.split("@");
+
+      let witnesses = botMessageArray[0];
+      // witnesses = JSON.parse(witnesses);
+
+      setFirstName(JSON.stringify(botMessageArray[0]))//[0].name;
+
+      console.log(botMessageArray)
+
+      setMyCase(botMessageArray);
     }
   };
 
@@ -146,17 +159,18 @@ export default function Protected() {
         </form>
         
         {/* Generates a case using GROQ */}
-        <div>
+        <div className='mt-50'>
           <button 
             onClick={generateCase}
             disabled={loading}
-            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50 mb-5"
           >
             Make New Case
           </button>
           <div className="mb-4 max-h-64 overflow-y-auto border p-4 rounded bg-gray-100">
             {myCase}
           </div>
+          <p>hello {firstName}</p>
         </div>
       </div>
     </div>
