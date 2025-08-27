@@ -6,6 +6,8 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
+// import { deleteConversations } from '@/app/api/conversation_empty/route';
+
 export default function Protected() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -47,16 +49,17 @@ export default function Protected() {
     fetchMessages();
   }, [user, activeSlot]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/login');
-  };
-
   const newConversation = async () => {
     const res = await axios.post('/api/conversation_new', { uid: user.uid });
     setConversations((prev) => [res.data, ...prev]);
     setActiveSlot(res.data.slotId);
     setMessages([]);
+    res.data.title = 'hello'
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/');
   };
 
   const sendQuery = async (e) => {
@@ -90,16 +93,30 @@ export default function Protected() {
     }
   };
 
+  const clearConversations = async () => {
+    const res = await axios.post('/api/conversation_empty', { uid: user.uid });
+    setConversations([]);
+    newConversation();
+  }
+
   return (
     <div className="min-h-screen bg-green-50 flex">
       {/* Sidebar for slots */}
       <div className="w-64 bg-white border-r p-4">
-        <button
-          onClick={newConversation}
-          className="mb-4 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-        >
-          + New Chat
-        </button>
+        <div>
+          <button
+            onClick={newConversation}
+            className="mb-4 mx-1 w-2/5 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          >
+            New Chat
+          </button>
+          <button
+            onClick={clearConversations}
+            className="mb-4 mx-1 w-2/5 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          >
+            Clear All
+          </button>
+        </div>
         {conversations.map((c) => (
           <div
             key={c._id.toString()} // ✅ always unique from MongoDB
@@ -108,7 +125,7 @@ export default function Protected() {
               activeSlot === c.slotId ? 'bg-blue-300' : 'bg-gray-200'
             }`}
           >
-            {c.name || `Conversation ${c.slotId}`}
+            {c.title || `Conversation ${c.slotId}`}
           </div>
         ))}
       </div>

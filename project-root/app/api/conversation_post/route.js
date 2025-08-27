@@ -1,5 +1,5 @@
 import mongooseConnect from '@/lib/mongoose';
-import Conversation from '@/models/Conversation';
+import Conversation from '@/models/Conversations';
 
 export async function POST(req) {
   try {
