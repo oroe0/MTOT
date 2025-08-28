@@ -19,6 +19,8 @@ export default function Protected() {
   const [conversations, setConversations] = useState([]);
   const [activeSlot, setActiveSlot] = useState(null);
 
+  const [myCase, setMyCase] = useState('')
+
   // Auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -45,6 +47,7 @@ export default function Protected() {
     const fetchMessages = async () => {
       const res = await axios.get('/api/conversation_get', { params: { uid: user.uid, slotId: activeSlot } });
       setMessages(res.data?.messages ?? []);
+      // setMyCase(res.data?.witnesses ?? []);
     };
     fetchMessages();
   }, [user, activeSlot]);
@@ -54,7 +57,7 @@ export default function Protected() {
     setConversations((prev) => [res.data, ...prev]);
     setActiveSlot(res.data.slotId);
     setMessages([]);
-    res.data.title = 'hello'
+    generateCase(null);
   };
 
   const handleLogout = async () => {
@@ -65,6 +68,8 @@ export default function Protected() {
   const sendQuery = async (e) => {
     e.preventDefault();
     if (!query.trim() || !user || !activeSlot) return;
+
+    console.log('\t\thello, testing')
 
     const userMessage = { sender: 'user', text: query };
     setMessages((prev) => [...prev, userMessage]);
@@ -93,10 +98,47 @@ export default function Protected() {
     }
   };
 
+  const generateCase = async (e) => {
+    // e.preventDefault();
+    if (!user || !activeSlot) return;
+
+    setLoading(true);
+
+    try {
+      const res = await axios.post('/api/groq', { message: 'Make a new case.' });
+      
+
+      const splitResponse = res.data.reply.split('@') 
+
+      const witnessArray = JSON.parse(splitResponse[1])
+      const evidenceArray = JSON.parse(splitResponse[2])
+      const otherStuff = JSON.parse(splitResponse[3])
+
+      setMyCase(res.data.reply) 
+
+      setMessages([{sender: 'bot', text: witnessArray[0][0]},{sender: 'bot', text: witnessArray[1][1]},{sender: 'bot', text: witnessArray[2][2]}])
+      
+      /**const responso = await axios.post('/api/case_generate', {
+        uid: user.uid,
+        slotId: activeSlot,
+        witnesses: witnessArray,
+        evidence: evidenceArray,
+        description: otherStuff[2],
+        title: otherStuff[0]+' vs. '+otherStuff[1],
+      });*/
+
+    } catch (error) {
+      console.log('\t\tBot Messaging Error.')
+    } finally {
+      setLoading(false);
+      setQuery('');
+    }
+  };
+
   const clearConversations = async () => {
-    const res = await axios.post('/api/conversation_empty', { uid: user.uid });
     setConversations([]);
     newConversation();
+    const res = await axios.post('/api/conversation_empty', { uid: user.uid });
   }
 
   return (
@@ -142,39 +184,45 @@ export default function Protected() {
             Logout
           </button>
 
-          {/* Messages */}
-          <div className="mb-4 max-h-64 overflow-y-auto border p-4 rounded bg-gray-100">
-            {messages.length === 0 && <p className="text-center text-gray-500">Start chatting...</p>}
-            {messages.map((msg, i) => (
-              <pre
-                key={i}
-                className={`whitespace-pre-wrap mb-2 p-2 rounded ${
-                  msg.sender === 'user' ? 'bg-blue-200 text-blue-900' : 'bg-gray-200 text-gray-900'
-                }`}
-              >
-                <strong>{msg.sender === 'user' ? 'You' : 'GROQ Bot'}:</strong> {msg.text}
-              </pre>
-            ))}
-          </div>
 
-          {/* Input */}
-          <form onSubmit={sendQuery} className="flex space-x-2">
-            <input
-              type="text"
-              placeholder="Enter GROQ query"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-grow p-2 border rounded"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
-            >
-              Send
-            </button>
-          </form>
+          {activeSlot ? 
+            <div>
+              {/* Messages */}
+              <div className="mb-4 max-h-64 overflow-y-auto border p-4 rounded bg-gray-100">
+                {messages.length === 0 && <p className="text-center text-gray-500">Start chatting...</p>}
+                {messages.map((msg, i) => (
+                  <pre
+                    key={i}
+                    className={`whitespace-pre-wrap mb-2 p-2 rounded ${
+                      msg.sender === 'user' ? 'bg-blue-200 text-blue-900' : 'bg-gray-200 text-gray-900'
+                    }`}
+                  >
+                    <strong>{msg.sender === 'user' ? 'You' : 'GROQ Bot'}:</strong> {msg.text}
+                  </pre>
+                ))}
+              </div>
+
+              {/* Input */}
+              <form onSubmit={sendQuery} className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Enter GROQ query"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="flex-grow p-2 border rounded"
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </form>
+              <p>hello {myCase}</p>
+            </div>
+          : <p>hello</p>}
         </div>
       </div>
     </div>
