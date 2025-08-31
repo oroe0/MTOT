@@ -7,7 +7,7 @@ export async function POST(req) {
 
     console.log('\t\t testing something')
 
-    if (!uid || !slotId || !witnesses || !evidence || !description || !title ) {
+    if (!uid || !slotId || !witnesses /**|| !evidence*/ || !description || !title ) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
     }
 

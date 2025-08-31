@@ -19,7 +19,7 @@ export default function Protected() {
   const [conversations, setConversations] = useState([]);
   const [activeSlot, setActiveSlot] = useState(null);
 
-  const [myCase, setMyCase] = useState('')
+  const [myCase, setMyCase] = useState({})
 
   // Auth
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function Protected() {
     const fetchMessages = async () => {
       const res = await axios.get('/api/conversation_get', { params: { uid: user.uid, slotId: activeSlot } });
       setMessages(res.data?.messages ?? []);
-      // setMyCase(res.data?.witnesses ?? []);
+      setMyCase(res.data);
     };
     fetchMessages();
   }, [user, activeSlot]);
@@ -114,18 +114,18 @@ export default function Protected() {
       const evidenceArray = JSON.parse(splitResponse[2])
       const otherStuff = JSON.parse(splitResponse[3])
 
-      setMyCase(res.data.reply) 
+      setMyCase(evidenceArray[0].name); 
 
-      setMessages([{sender: 'bot', text: witnessArray[0][0]},{sender: 'bot', text: witnessArray[1][1]},{sender: 'bot', text: witnessArray[2][2]}])
+      // setMessages([{sender: 'bot', text: evidenceArray},{sender: 'bot', text: witnessArray[1][1]},{sender: 'bot', text: witnessArray[2][2]}])
       
-      /**const responso = await axios.post('/api/case_generate', {
+      const responso = await axios.post('/api/case_generate', {
         uid: user.uid,
         slotId: activeSlot,
         witnesses: witnessArray,
         evidence: evidenceArray,
         description: otherStuff[2],
         title: otherStuff[0]+' vs. '+otherStuff[1],
-      });*/
+      });
 
     } catch (error) {
       console.log('\t\tBot Messaging Error.')
@@ -141,6 +141,16 @@ export default function Protected() {
     const res = await axios.post('/api/conversation_empty', { uid: user.uid });
   }
 
+  function Witness({ name, title, statement }) {
+    return (
+      <div className='m-2'>
+        <h3 className='text-1xl'>{name} - {title}</h3>
+        <p>{statement}</p>
+      </div>
+    )
+
+  }
+
   return (
     <div className="min-h-screen bg-green-50 flex">
       {/* Sidebar for slots */}
@@ -150,7 +160,7 @@ export default function Protected() {
             onClick={newConversation}
             className="mb-4 mx-1 w-2/5 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
           >
-            New Chat
+            New Case
           </button>
           <button
             onClick={clearConversations}
@@ -220,9 +230,45 @@ export default function Protected() {
                   Send
                 </button>
               </form>
-              <p>hello {myCase}</p>
+
+              {/** The case Files */}
+              <div className='flex flex-col'>
+                {/** Witnesses */}
+                <div className='flex flew-row'>
+
+                  {/** Prosecuter Witnesses */}
+                  <div className='flew flex-col w-1/2 mt-4'>
+                    <h2 className='text-2xl'>Prosecution Witnesses:</h2>
+
+                    <Witness name='bill' title='joe' statement='hello' />
+
+                    <Witness name='bill' title='joe' statement='hello' />
+
+                    <Witness name='bill' title='joe' statement='hello' />
+                  </div>
+
+                  {/** Defense Witnesses */}
+                  <div className='flew flex-col w-1/2 mt-4'>
+                    <h2 className='text-2xl'>Defense Witnesses:</h2>
+
+                    <Witness name='bill' title='joe' statement='hello' />
+
+                    <Witness name='bill' title='joe' statement='hello' />
+
+                    <Witness name='bill' title='joe' statement='hello' />
+                  </div>
+
+                </div>
+
+                {/** Evidence */}
+                <div>
+
+                </div>
+
+              </div>
+              <p>hello {myCase.witnesses}</p>
             </div>
-          : <p>hello</p>}
+          : <p>Create a New Case to Begin</p>}
         </div>
       </div>
     </div>
