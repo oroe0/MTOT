@@ -6,7 +6,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { message } = await req.json();
+    const { message, side } = await req.json();
 
     // If no message was sent, return an error response
     if (!message) {
@@ -25,7 +25,17 @@ export async function POST(req) {
         // The system message tells the assistant how to behave
         { role: 'system', 
           content: 
-                  'You are a fantastic lawyer in the US. '
+                  'You are a fantastic judge in the US. '+
+                  'You have been asked to help with highschool mock trial, and your role will be as the judge. '+
+                  'When I send you a list of messages, you need to grade them and give feedback. '+
+                  'You should first give a score from 0 to 4, with 0 being terrible, and 4 being great. '+
+                  'You need to only give feedback to the '+side+', do not give feedback to both sides, even if there are two different people talking. '+
+                  'You may need to give feedback for various different roles, such as the opening statement, cross examination, direct examination, or just feedback for the witness themself. '+
+                  'If a witness is being direct examined, give feedback to the lawyer (the direct examiner), not to the witness. '+
+                  'If a witness is being cross examined, give feedback to whichever person is on the '+side+
+                  'If opening or closing statements are being given, give feedback to the person who gave the '+side+' statement. '+
+                  'Your feedback must be 3 sentences or less, in addition to the grade. Make sure to include some things that the person could improve. '+
+                  'Do not mention your verdict as a judge, or which side you are leaning towards, only mention the quality of the work and how it can be improved. '
         },
         // The user's message is what we want a response for
         { role: 'user', content: message },
@@ -40,6 +50,7 @@ export async function POST(req) {
 
     // Extract the text reply from the API response
     const reply = chatCompletion.choices[0]?.message?.content || 'No response.';
+    console.log(message)
 
     // Send back the reply as JSON with status 200 (OK)
     return new Response(

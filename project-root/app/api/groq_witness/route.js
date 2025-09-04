@@ -6,7 +6,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { message } = await req.json();
+    const { message, name, title, caseName, description, statement, evidence } = await req.json();
 
     // If no message was sent, return an error response
     if (!message) {
@@ -25,7 +25,18 @@ export async function POST(req) {
         // The system message tells the assistant how to behave
         { role: 'system', 
           content: 
-                  'You are a fantastic lawyer in the US. '
+                  'You will help a student with practice for mock trial. In order to help them, you need to play the role of '+name+
+                  'I will tell you how to act, and in order to help this student succeed, you must do exactly as I tell you to. '+
+
+                  'You are '+name+', a '+title+' in '+caseName+'. '+description+
+                  'The evidence that has been found includes, '+evidence+
+                  'You have previously said '+statement+' regarding the case. You now must expand on that.'+
+                  'You will answer questions from a student lawyer, and you must answer them as '+name+
+                  'You must speak in first person, and only speak about events you have knowledge about. '+
+                  //'You must speak for more than 50 words, and your entire statement should be a single paragraph that is under 150 words. '+
+                  //'If you are an expert witness, you may speak about what qualifies you. If you did something in this case (such as collect evidence), you must say what you have done and how you did it. '+
+                  'You may not make up facts about the case, everything you say regarding the case must be the truth as you know it to be. '
+                  
         },
         // The user's message is what we want a response for
         { role: 'user', content: message },

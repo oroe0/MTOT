@@ -25,18 +25,18 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, email, password);
 
       // Show success message
-      setMessage("✅ Login successful!");
+      setMessage("Login successful");
 
       // Redirect to protected page
       router.push("/protected");
     } catch (err) {
       // Show error if login fails
-      setMessage("❌ " + err.message);
+      setMessage("Login failed, " + err.message);
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-r from-slate-800 via-sky-600 to-teal-200 text-white">
       <form onSubmit={handleLogin} className="bg-gray-800 p-6 rounded-lg shadow-lg w-80">
         <h1 className="text-xl font-bold mb-4 text-center">Login</h1>
 
@@ -58,17 +58,26 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-500 transition"
         >
           Login
         </button>
 
         <Link href="/register" className="block mt-4 text-blue-400 hover:underline text-center">
-          Go to Registration
+          Go to Sign Up
         </Link>
 
         {message && <p className="mt-3 text-center">{message}</p>}
       </form>
+
+      <div className="mt-9">
+        <Link
+          href="/"
+          className="mt-4 px-4 py-2 bg-red-500 rounded text-white font-semibold hover:bg-red-400 transition"
+        >
+          Back
+        </Link>
+      </div>
     </div>
   );
 }

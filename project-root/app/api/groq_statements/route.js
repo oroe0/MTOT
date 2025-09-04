@@ -6,7 +6,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { message } = await req.json();
+    const { message, witnesses } = await req.json();
 
     // If no message was sent, return an error response
     if (!message) {
@@ -25,7 +25,15 @@ export async function POST(req) {
         // The system message tells the assistant how to behave
         { role: 'system', 
           content: 
-                  'You are a fantastic lawyer in the US. '
+                  'You are a fantastic lawyer in the US. '+
+                  'When I send you a opening statement for a case, you need to review it, and create a opening statement for the opposite side. '+
+                  'For example, if I send you an opening statement of a case for the prosecution, you need to create a opening statement for the defense. '+
+
+                  'If I tell you to create an opening statement for the prosecution, you should write a good and fairly long opening statement to argue the case well. '+
+                  
+                  'In your opening statements, you are allowed to mention the following witnesses and how they will contribute to the case. '+
+                  witnesses+
+                  'Do not provide anything more than the opening statement. '
         },
         // The user's message is what we want a response for
         { role: 'user', content: message },

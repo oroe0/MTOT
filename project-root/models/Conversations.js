@@ -6,19 +6,18 @@ const MessageSchema = new mongoose.Schema({
   ts: { type: Date, default: Date.now },
 });
 
-const EvidenceSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true },
-});
-
 const ConversationSchema = new mongoose.Schema({
   uid: { type: String, required: true },         // Firebase user id
   slotId: { type: String, required: true },      // unique conversation slot
   title: { type: String, default: 'New Case' },  // optional chat title
   messages: [MessageSchema],
-  witnesses: [[String]],
-  evidence: [EvidenceSchema],
-  description: { type: String, required: false},
+  witnesses: { type: String, default: '[]' },
+  evidence: { type: String, default: '[]' },
+  description: { type: String, default: 'empty case'},
+  role: { type: String, enum: ['witness', 'statements', 'direct', 'cross', 'whole'], default: 'whole' },
+  personOfInterest: { type: Number, required: false },
+  side: { type: String, enum: ['prosecution', 'defense'], default: 'defense' },
+  isOpen: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
