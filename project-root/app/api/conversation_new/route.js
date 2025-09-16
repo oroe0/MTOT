@@ -4,8 +4,8 @@ import { randomUUID } from 'crypto';
 
 export async function POST(req) {
   try {
-    const { uid, role } = await req.json();
-    if (!uid || !role) return new Response(JSON.stringify({ error: 'Missing uid or role' }), { status: 400 });
+    const { uid, role, side } = await req.json();
+    if (!uid || !role || !side ) return new Response(JSON.stringify({ error: 'Missing uid or role' }), { status: 400 });
 
     await mongooseConnect();
     const slotId = randomUUID();
@@ -15,6 +15,7 @@ export async function POST(req) {
       slotId,
       title: 'New Chat',
       role: role,
+      side: side,
       messages: [],
     });
 

@@ -125,10 +125,11 @@ export default function Protected() {
 
   
 
-  const handleQueries = async () => {
-    //if (!caseIsOpen) {return}
-    //setClickCount((prev) => prev++);
-    /*
+  const handleQueries = async (e) => {
+    e.preventDefault();
+    if (!caseIsOpen) {return}
+    setLoading(true);
+    
 
     const questionWitness = async () => {
       //e.preventDefault();
@@ -184,6 +185,7 @@ export default function Protected() {
       const userMessage = { sender: 'user', text: query };
       setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
+      setClickCount(clickCount + 1);
 
       try {
         const compiledWitnesses = 
@@ -216,9 +218,10 @@ export default function Protected() {
     }
 
     const prosecutionOpeningStatement = async () => {
-      if (!user || !activeSlot) return;
+      if (!user || !activeSlot || messages.length>0) return;
 
       setLoading(true);
+      setClickCount(clickCount + 1);
 
       try {
         const compiledWitnesses = 
@@ -231,7 +234,7 @@ export default function Protected() {
         await axios.post('/api/conversation_post', {
           uid: user.uid,
           slotId: activeSlot,
-          userMessage: query,
+          userMessage: '',
           botMessage: res.data.reply,
           isOpen: true,
         });
@@ -257,6 +260,7 @@ export default function Protected() {
       const userMessage = { sender: 'user', text: query };
       setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
+      setClickCount(clickCount + 1)
 
       try {
         const compiledMessages = messages.map((m) => (
@@ -287,25 +291,75 @@ export default function Protected() {
         setQuery('');
       }
     }
+    
+    // 🔹 Direct examiner: user asks, witness responds
+    const examination = async () => {
+      await questionWitness()
+    }
 
-    /*if (caseRole === 'statements') {
-      if (caseSide === 'prosecution') {//* pros opening statements*
-        defenseOpeningStatement();
-        if (clickCount === 2) {
+    // 🔹 Witness role: AI asks questions, user responds
+    const witnessBeingExamined = async () => {
+      if (!user || !activeSlot) return
+      setLoading(true)
+      setClickCount(clickCount + 1)
+
+      try {
+        const res = await axios.post('/api/groq_cross_lawyer', {
+          witnessName: witnesses[personOfInterest][0],
+          caseName: caseTitle,
+          description: caseDescription,
+          evidence: evidence,
+        })
+        const botMessage = { sender: 'bot', text: res.data.reply }
+
+        await axios.post('/api/conversation_post', {
+          uid: user.uid,
+          slotId: activeSlot,
+          userMessage: '', // AI asked the question
+          botMessage: res.data.reply,
+          isOpen: true,
+        })
+
+        setMessages((prev) => [...prev, botMessage])
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: 'bot', text: '❌ Error generating AI question.' },
+        ])
+      } finally {
+        setLoading(false)
+        setQuery('')
+      }
+    }
+
+    if (caseRole === 'statements') {
+      if (caseSide === 'prosecution') {//* pros opening statements*/
+        if (clickCount === 0) {
+          defenseOpeningStatement(); 
+        }
+        else if (clickCount === 1) {
           judgerOfStatements()
         }
       }
-      else {//** first bot open statements, then defense open statements *
-        if (clickCount === 1) {
+      else {//** first bot open statements, then defense open statements */
+        if (clickCount === 0) {
           prosecutionOpeningStatement();
         }
-        else if (clickCount === 2) {
+        else if (clickCount === 1) {
           judgerOfStatements()
         }
       }
 
-    }*/
+    } else if (caseRole === 'direct') {
+      await examination()
+    } else if (caseRole === 'cross') {
+      await examination()
+    } else if (caseRole === 'witness') {
+      await witnessBeingExamined()
+    }
+    setLoading(false);
   };
+
 
   const generateCase = async (slotID) => {
     // e.preventDefault();
@@ -473,41 +527,36 @@ export default function Protected() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-950 via-sky-900 to-cyan-900 flex flex-col font-petrona">
+    <div className="min-h-screen flex flex-col bg-gradient-to-r from-yellow-200 via-stone-400 to-blue-900 text-gray-900 font-petrona">
 
-      {/** Top Bar */}
-      <div className="flex justify-between items-center px-6 py-4 bg-white/90 shadow">
+      {/* Fixed Top Bar */}
+      <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-white/80 shadow-md backdrop-blur">
         {/* Logo */}
-        <a href='/'>
-          <img src="/large-logo.png" className="w-12 h-12 rounded-full justify-center" />
+        <a href="/" className="flex items-center space-x-2">
+          <img src="/large-logo.png" className="w-12 h-12 rounded-full" />
+          <span className="pl-3 font-bold font-oldenburg text-lg text-blue-900">Mock Trial Online Trainer</span>
         </a>
-        
 
-        <div className='flex flex-row'>
-          {user && <p className="mr-4 mt-2 text-center font-oldenburg"><strong>{user.email}</strong></p>}
+        <div className="flex items-center space-x-3">
+          {user && <p className="text-blue-900 font-semibold">{user.email}</p>}
           <button
-            onClick={handleLogout}
-            className="mb-4  bg-red-500 text-white py-2 px-4 rounded-full font-oldenburg hover:bg-red-400 transition"
+            onClick={async () => { await signOut(auth); router.push('/') }}
+            className="px-4 py-2 bg-red-500 rounded-full text-white font-semibold hover:bg-red-400 transition"
           >
             Logout
           </button>
-
         </div>
-      </div>
+      </header>
 
       {/** Main area of the page */}
-      <div className='flex'>
+      <div className="flex flex-1 pt-24">
 
-        {/* Sidebar for slots */}
-        <div className="w-64 min-h-screen bg-slate-200/50 border p-4 flex flex-col items-center">
-          {/** buttons */}
-          <div className='m-3'>
-            {/*<button
-              onClick={newConversation}
-              className="mb-4 mx-1 bg-blue-500 text-white py-2 px-2 rounded hover:bg-blue-600"
-            >
-              New Case
-            </button>*/}
+        
+
+        {/* Sidebar */}
+        <aside className="fixed top-0 left-0 w-64 h-screen bg-zinc-200/80 border-r shadow-lg flex flex-col pt-24 p-4">
+          <div className="space-y-3 mb-6">
+            {/* Dropdown + Clear */}
             <DropdownButton />
             <button
               onClick={clearConversations}
@@ -516,27 +565,34 @@ export default function Protected() {
               Clear All
             </button>
           </div>
-          {conversations.map((c) => (
-            <div
-              key={c._id.toString()} // ✅ always unique from MongoDB
-              onClick={() => setActiveSlot(c.slotId)}
-              className={`p-2 w-full rounded cursor-pointer mb-2 ${
-                activeSlot === c.slotId ? 'bg-blue-400' : 'bg-slate-400'
-              }`}
-            >
-              {c.title || `Conversation ${c.slotId}`}
-            </div>
-          ))}
-        </div>
+
+          {/* Conversation Slots */}
+          <div className="flex-1 w-full space-y-2 overflow-y-auto">
+            {conversations.map((c) => (
+              <div
+                key={c._id.toString()}
+                onClick={() => setActiveSlot(c.slotId)}
+                className={`p-2 w-full rounded cursor-pointer transition ${
+                  activeSlot === c.slotId
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-slate-300 hover:bg-slate-200'
+                }`}
+              >
+                {c.title || `Conversation ${c.slotId}`}
+              </div>
+            ))}
+          </div>
+        </aside>
+
 
         {/* Main chat area */}
-        <div className="flex-1 p-6 flex flex-row justify-center">
+        <div className="ml-64 flex-1 p-6 flex flex-row justify-center">
 
           {/** The case Files */}
           {activeSlot ? 
           <div className='flex flex-col mr-5 max-w-2xl'>
               
-            <h1 className='text-bold text-white text-4xl mt-9 m-5 text-center font-oldenburg'>Case Files</h1>
+            <h1 className='text-bold text-blue-950 text-4xl mt-9 m-5 text-center font-oldenburg'>Case Files</h1>
                   
             {/** Witnesses */}
             <div className='flex flew-row'>
@@ -577,60 +633,75 @@ export default function Protected() {
           
 
 
-          <div className="max-w-2xl w-full bg-white rounded shadow p-6 mb-4">
+          <div className="max-w-3xl w-full bg-white rounded shadow-lg p-6 mb-4">
             <h1 className="text-xl font-bold mb-2 text-center">{caseTitle}</h1>
             <p>{caseDescription}</p>
             {caseRole &&
               <p className='text-center m-9 text-xl'>You are  <>
-                {caseRole === 'cross' && 'Cross Examining '+witnesses[personOfInterest][0]}
-                {caseRole === 'direct' && 'Direct Examining '+witnesses[personOfInterest][0]}
-                {caseRole === 'witness' && 'Playing the Role of '+witnesses[personOfInterest][0]}
-                {caseRole === 'statements' && 'the Opening and Closing Statement Lawyer for the '+caseSide}
-                {caseRole === 'whole' && 'the Lawyer for the Whole Case'}
-                </>
+                {caseRole === 'cross' && 'cross examining '+(witnesses?.[personOfInterest]?.[0] ?? '')}
+                {caseRole === 'direct' && 'direct examining '+(witnesses?.[personOfInterest]?.[0] ?? '')}
+                {caseRole === 'witness' && ' '+(witnesses?.[personOfInterest]?.[0] ?? '')}
+                {caseRole === 'statements' && 'the opening and closing statement lawyer for the '+caseSide}
+                {caseRole === 'whole' && 'the lawyer for the whole case'}
+                </>.
               </p>
             }
 
             {/* Messages */}
             {activeSlot ? 
-              <div>
-                <div className="mb-4 max-h-64 overflow-y-auto border p-4 rounded bg-gray-100">
-                    {messages.length === 0 && <p className="text-center text-gray-500">Start chatting...</p>}
+              <main className="flex-1 flex flex-col items-center">
+                <div className="max-w-3xl w-full bg-white backdrop-blur rounded-2xl">
+
+                  {/* Chat messages */}
+                  <div className="mb-4 max-h-100 overflow-y-auto border rounded-lg p-4 bg-gray-100">
+                    {messages.length === 0 && (
+                      <p className="text-center text-gray-500 italic">The Trial Stenographer</p>
+                    )}
                     {messages.map((msg, i) => (
-                      <pre
+                      <p
                         key={i}
-                        className={`whitespace-pre-wrap mb-2 p-2 rounded ${
-                          msg.sender === 'user' ? 'bg-blue-200 text-blue-900' : 'bg-gray-200 text-gray-900'
+                        className={`whitespace-pre-wrap mb-2 p-2 rounded-lg shadow-sm ${
+                          msg.sender === 'user'
+                            ? 'bg-sky-100 text-zinc-900'
+                            : 'bg-rose-100 text-slate-900'
                         }`}
                       >
-                        <strong>{msg.sender === 'user' ? 'You' : 'GROQ Bot'}:</strong> {msg.text}
-                      </pre>
+                        {msg.text && (
+                          <>
+                            <strong>{msg.sender === 'user' ? 'You' : (caseRole!=='direct' ? 'Adversary' : (witnesses?.[personOfInterest]?.[0] ?? ''))}:</strong>{' '}
+                            {msg.text}
+                          </>
+                        )}
+                      </p>
                     ))}
-                </div>
+                  </div>
 
-                {/* Input */}
-                <form className="flex space-x-2">
-                    <input
-                      type="text"
-                      placeholder="Enter GROQ query"
+                  {/* Input */}
+                  <form onSubmit={handleQueries} className="flex space-x-2">
+                    <textarea
+                      placeholder="Begin Talking"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      className="flex-grow p-2 border rounded"
+                      rows={1}
+                      className="flex-grow p-2 border rounded-lg shadow-sm focus:outline-none focus:ring focus:ring-blue-300 resize-none overflow-hidden"
                       disabled={loading}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement
+                        target.style.height = "auto" // reset before recalculating
+                        target.style.height = target.scrollHeight + "px"
+                      }}
                     />
                     <button
                       type="submit"
                       disabled={loading}
-                      className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+                      className="bg-blue-600 text-white py-2 px-4 rounded-full hover:bg-blue-500 transition disabled:opacity-50"
                     >
                       Send
                     </button>
-                </form>
+                  </form>
 
-                <p>{witnesses?.[personOfInterest]?.[0] ?? ''}</p>
-                <p>{clickCount}</p>
-                <p>{JSON.stringify(caseIsOpen)}</p>
-              </div>
+                </div>
+              </main>
             : <p>Create a New Case to Begin</p>}
           </div>
         </div>

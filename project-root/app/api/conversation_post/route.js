@@ -5,7 +5,7 @@ export async function POST(req) {
   try {
     const { uid, slotId, userMessage, botMessage, isOpen } = await req.json();
 
-    if (!uid || !slotId || !userMessage || !botMessage || !isOpen ) {
+    if (!uid || !slotId || /*!userMessage ||*/ !botMessage  ) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
     }
 

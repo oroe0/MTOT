@@ -32,7 +32,3 @@ body {
 .font-petrona {
   font-family: var(--font-petrona);
 }
-
-button {
-  font: var(--font-oldenburg);
-}
