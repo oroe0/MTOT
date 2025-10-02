@@ -3,7 +3,7 @@ import Link from "next/link"
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-r from-yellow-200 via-stone-400 to-blue-900 text-gray-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-r from-yellow-200 via-stone-400 to-blue-900 text-gray-900 font-petrona">
       
       {/* Top bar with logo and buttons */}
       <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-white/80 shadow-md backdrop-blur">
@@ -37,7 +37,7 @@ export default function Home() {
           Mock Trial Online Trainer
         </h1>
         <p className="text-lg italic font-oldenburg text-stone-700 mb-8">
-          Built for Highschool Mock Trial — and beyond!
+          Built for Highschool Mock Trial and beyond!
         </p>
 
         {/* Hero Images */}
@@ -104,7 +104,7 @@ export default function Home() {
             <p className="mt-4 font-semibold text-blue-700">— Champions of the Courtroom</p>
           </div>
           <div className="bg-zinc-100 rounded-xl shadow p-6">
-            <p className="italic">“The only downside is that I cannot win any of these online trials! The MTOT bot is just too good of a lawyer!”</p>
+            <p className="italic">“The only downside to the MTOT is that I cannot win any of these online trials! The MTOT bot is just way better than me as a lawyer!”</p>
             <p className="mt-4 font-semibold text-blue-700">— Professional Attorney</p>
           </div>
           <div className="bg-zinc-100 rounded-xl shadow p-6">
@@ -118,11 +118,11 @@ export default function Home() {
       <footer className="bg-slate-900 text-white py-6 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center px-6 max-w-6xl mx-auto">
           <p>&copy; {new Date().getFullYear()} Mock Trial Online Trainer. All rights reserved.</p>
-          <div className="flex space-x-4 mt-3 md:mt-0">
+          {/*<div className="flex space-x-4 mt-3 md:mt-0">
             <Link href="/about" className="hover:text-yellow-400 transition">About</Link>
-            <Link href="/contact" className="hover:text-yellow-400 transition">Contact</Link>
+            <Link href="oroe28@punahou.edu" className="hover:text-yellow-400 transition">Email</Link>
             <Link href="/faq" className="hover:text-yellow-400 transition">FAQ</Link>
-          </div>
+          </div>*/}
         </div>
       </footer>
     </div>

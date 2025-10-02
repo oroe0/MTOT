@@ -298,17 +298,26 @@ export default function Protected() {
     }
 
     // 🔹 Witness role: AI asks questions, user responds
-    const witnessBeingExamined = async () => {
+    const witnessBeingExaminedStarter = async () => {
       if (!user || !activeSlot) return
       setLoading(true)
       setClickCount(clickCount + 1)
 
       try {
+        const compiledEvidence = 
+            evidence[0][0]+' - '+evidence[0][1]+', '+
+            evidence[1][0]+' - '+evidence[1][1]+', '+
+            evidence[2][0]+' - '+evidence[2][1]+', '+
+            evidence[3][0]+' - '+evidence[3][1]+'.'
+        
         const res = await axios.post('/api/groq_cross_lawyer', {
-          witnessName: witnesses[personOfInterest][0],
-          caseName: caseTitle,
-          description: caseDescription,
-          evidence: evidence,
+          message: '',
+          name: witnesses[personOfInterest][0],
+          title: witnesses[personOfInterest][1],
+          caseName: caseTitle, 
+          description: caseDescription, 
+          statement: witnesses[personOfInterest][2], 
+          evidence: compiledEvidence,
         })
         const botMessage = { sender: 'bot', text: res.data.reply }
 
@@ -332,21 +341,66 @@ export default function Protected() {
       }
     }
 
+    const witnessBeingExamined = async () => {
+      if (!user || !activeSlot) return
+      setLoading(true)
+      setClickCount(clickCount + 1)
+      const userMessage = { sender: 'user', text: query };
+      setMessages((prev) => [...prev, userMessage]);
+
+      try {
+        const compiledEvidence = 
+            evidence[0][0]+' - '+evidence[0][1]+', '+
+            evidence[1][0]+' - '+evidence[1][1]+', '+
+            evidence[2][0]+' - '+evidence[2][1]+', '+
+            evidence[3][0]+' - '+evidence[3][1]+'.'
+        
+        const res = await axios.post('/api/groq_cross_lawyer', {
+          message: query,
+          name: witnesses[personOfInterest][0],
+          title: witnesses[personOfInterest][1],
+          caseName: caseTitle, 
+          description: caseDescription, 
+          statement: witnesses[personOfInterest][2], 
+          evidence: compiledEvidence,
+        })
+        const botMessage = { sender: 'bot', text: res.data.reply }
+
+        await axios.post('/api/conversation_post', {
+          uid: user.uid,
+          slotId: activeSlot,
+          userMessage: query,
+          botMessage: res.data.reply,
+          isOpen: true,
+        })
+
+        setMessages((prev) => [...prev,  botMessage])
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: 'bot', text: '❌ Error generating AI question.' },
+        ])
+      } finally {
+        setLoading(false)
+        setQuery('')
+      }
+    }
+
     if (caseRole === 'statements') {
       if (caseSide === 'prosecution') {//* pros opening statements*/
         if (clickCount === 0) {
-          defenseOpeningStatement(); 
+          await defenseOpeningStatement(); 
         }
         else if (clickCount === 1) {
-          judgerOfStatements()
+          await judgerOfStatements()
         }
       }
       else {//** first bot open statements, then defense open statements */
         if (clickCount === 0) {
-          prosecutionOpeningStatement();
+          await prosecutionOpeningStatement();
         }
         else if (clickCount === 1) {
-          judgerOfStatements()
+          await judgerOfStatements()
         }
       }
 
@@ -355,7 +409,13 @@ export default function Protected() {
     } else if (caseRole === 'cross') {
       await examination()
     } else if (caseRole === 'witness') {
-      await witnessBeingExamined()
+      if (clickCount === 0) {
+        await witnessBeingExaminedStarter()
+      }
+      else (
+        await witnessBeingExamined()
+      )
+      
     }
     setLoading(false);
   };

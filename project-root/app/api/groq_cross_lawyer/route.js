@@ -6,14 +6,18 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { name, title, caseName, description, statement, evidence } = await req.json();
+    const { message, name, title, caseName, description, statement, evidence } = await req.json();
 
     // If no message was sent, return an error response
-    if (!message) {
+    if ( !name || !title || !caseName || !description || !statement || !evidence ) {
       return new Response(
         JSON.stringify({ error: 'No message provided' }), 
         { status: 400 } // 400 means bad request
       );
+    }
+    let theMessage = message;
+    if (theMessage === '') {
+      theMessage = 'Begin Cross-Examination.';
     }
 
     // Create a new Groq client instance using your API key
@@ -30,10 +34,15 @@ export async function POST(req) {
                   'You will cross examine '+name+' in '+caseName+'. '+description+'. '+name+' is a '+title+' and has said '+statement+
                   'In addition, the following evidence may be relevent to the case. '+evidence+
                   'You need to ask '+name+' one question as if you are a cross examination lawyer cross-examining them. '+
-                  
+                  'Make sure your question is reletively short. It should not be longer than two sentences. '+
+                  'You must ask a leading question, this means a question that would usually be answered with either yes or no. '+
+                  'You should not ask compound questions, or questions that ask two seperate things. '+
+                  'You can make the questions more simple in order to insure that you do not ask compound questions'+
+                  'Do not ask multiple questions, and do not make a statement, only ask 1 leading question. '+
+                  'Do not say anything else except for the question. Do not include sentences or words before or after the question. '
         },
         // The user's message is what we want a response for
-        { role: 'user', content: message },
+        { role: 'user', content: theMessage },
       ],
       model: 'meta-llama/llama-4-scout-17b-16e-instruct', // The AI model to use
       temperature: 1,              // Controls randomness: 1 = normal, 0 = deterministic
