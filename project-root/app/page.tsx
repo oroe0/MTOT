@@ -43,7 +43,7 @@ export default function Home() {
         {/* Hero Images */}
         <div className="flex flex-col md:flex-row gap-6">
           <img src="2023-High-School-Mock-Trial.jpg" className="w-150 h-100 bg-gray-300 rounded-lg shadow flex items-center justify-center" />
-          <img className="w-150 h-100 bg-gray-400 rounded-lg shadow flex items-center justify-center" />
+          <img src="testingImage.png" className="w-150 h-100 bg-gray-400 rounded-lg shadow flex items-center justify-center" />
         </div>
       </section>
 

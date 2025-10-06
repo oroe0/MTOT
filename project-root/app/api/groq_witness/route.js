@@ -6,7 +6,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { message, name, title, caseName, description, statement, evidence } = await req.json();
+    const { message, name, title, caseName, description, statement, evidence, messages } = await req.json();
 
     // If no message was sent, return an error response
     if (!message) {
@@ -33,12 +33,15 @@ export async function POST(req) {
                   'You have previously said '+statement+' regarding the case. You now must expand on that.'+
                   'You will answer questions from a student lawyer, and you must answer them as '+name+
                   'You must speak in first person, and only speak about events you have knowledge about. '+
+                  'You should only answer the question, you do not need to talk about evertyhinh you said before or all of the evidence. Focus on answering the question you are asked. '+
                   'You must speak for more than 10 words, and your entire statement should be a single paragraph that is under 60 words. '+
                   'At certain times, it is okay to speak only a little, but generally you should respond with at least 1 sentence. '+
                   'If you are an expert witness, you may speak about what qualifies you. If you did something in this case (such as collect evidence), you must say what you have done and how you did it. '+
                   'You may not make up facts about the case, everything you say regarding the case must be the truth as you know it to be. '+
                   'Your job is very simple, just answer the question that you are asked. '+
-                  'You need to provide some additional detail, though too much detail is absolutely horrific and will be very bad. '
+                  'You need to provide some additional detail, though too much detail is absolutely horrific and will be very bad. '+
+                  'Just before now, you have been asked the following questions and have responded in the following ways. '+
+                  messages
                   
         },
         // The user's message is what we want a response for
