@@ -6,6 +6,13 @@ export async function POST(req) {
     const { uid, slotId, witnesses, evidence, description, title, personOfInterest} = await req.json();
 
     if (!uid || !slotId || !witnesses || !evidence || !description || !title || !personOfInterest ) {
+      console.log("\t\t"+uid)
+      console.log(slotId)
+      console.log(witnesses)
+      console.log(evidence)
+      console.log(description)
+      console.log(title)
+      console.log(personOfInterest)
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
     }
 

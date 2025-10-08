@@ -74,6 +74,84 @@ export default function Main() {
   };
 
   const newConversation = async (Role) => {
+    const prosecutionOpeningStatement = async (betterWitnesses, slotID) => {
+      if (!user) return;
+
+      setLoading(true);
+
+      try {
+        const compiledWitnesses = 
+          betterWitnesses[3][0]+' '+betterWitnesses[3][1]+', said '+betterWitnesses[3][2]+', '+
+          betterWitnesses[4][0]+' '+betterWitnesses[4][1]+', said '+betterWitnesses[4][2]+', '+
+          betterWitnesses[5][0]+' '+betterWitnesses[5][1]+', said '+betterWitnesses[5][2]+'. '
+        const res = await axios.post('/api/groq_statements', { message: 'Create an opening statement for the prosecution', witnesses: compiledWitnesses });
+        const botMessage = { sender: 'bot', text: res.data.reply };
+
+        await axios.post('/api/conversation_post', {
+          uid: user.uid,
+          slotId: slotID,
+          userMessage: '',
+          botMessage: res.data.reply,
+          isOpen: true,
+        });
+
+        setMessages((prev) => [...prev, botMessage]);
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: 'bot', text: '❌ Error fetching/saving conversation.' },
+        ]);
+      } finally {
+        setLoading(false);
+        setQuery('');
+      }
+    }
+
+    // 🔹 Witness role: AI asks questions, user responds
+    const witnessBeingExaminedStarter = async (slotID, betterEvidence, POI, title, description) => {
+      if (!user) return
+      setLoading(true)
+      setClickCount(clickCount + 1)
+
+      try {
+        const compiledEvidence = 
+            betterEvidence[0][0]+' - '+betterEvidence[0][1]+', '+
+            betterEvidence[1][0]+' - '+betterEvidence[1][1]+', '+
+            betterEvidence[2][0]+' - '+betterEvidence[2][1]+', '+
+            betterEvidence[3][0]+' - '+betterEvidence[3][1]+'.'
+        
+        const res = await axios.post('/api/groq_cross_lawyer', {
+          message: '',
+          name: POI[0],
+          title: POI[1],
+          caseName: title, 
+          description: description, 
+          statement: POI[2], 
+          evidence: compiledEvidence,
+          messages: ''
+        })
+        const botMessage = { sender: 'bot', text: res.data.reply }
+
+        await axios.post('/api/conversation_post', {
+          uid: user.uid,
+          slotId: slotID,
+          userMessage: '', // AI asked the question
+          botMessage: res.data.reply,
+          isOpen: true,
+        })
+
+        setMessages((prev) => [...prev, botMessage])
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: 'bot', text: '❌ Error generating AI question. OOGA BOOGA' },
+        ])
+      } finally {
+        setLoading(false)
+        setQuery('')
+      }
+    }
+
     const Side = Math.random() > 0.5 ? 'prosecution' : 'defense'
     const res = await axios.post('/api/conversation_new', { uid: user.uid, role: Role, side: Side });
     setConversations((prev) => [res.data, ...prev]);
@@ -81,7 +159,19 @@ export default function Main() {
     setMessages([]);
     setCaseRole(Role);
     setCaseSide(Side);
-    generateCase(res.data.slotId);
+    if ((Role === 'witness') || (Role === 'statements' && Side === 'defense')) {
+      console.log("ooga booga")
+      const {betterEvidence, betterWitnesses, POI, title, description} = await generateCase(res.data.slotId, true);
+      if (Role === 'witness') {
+        witnessBeingExaminedStarter(res.data.slotId, betterEvidence, POI, title, description)
+      }
+      else {
+        prosecutionOpeningStatement(betterWitnesses, res.data.slotId);
+      }
+    }
+    else {
+      generateCase(res.data.slotId, false);
+    }
   };
 
   const handleLogout = async () => {
@@ -143,7 +233,7 @@ export default function Main() {
 
       try {
         let compiledMessages = ""
-        for (let message of messages) {
+        for (const message of messages) {
           compiledMessages += message.text + " "
         }
 
@@ -303,49 +393,7 @@ export default function Main() {
       await questionWitness()
     }
 
-    // 🔹 Witness role: AI asks questions, user responds
-    const witnessBeingExaminedStarter = async () => {
-      if (!user || !activeSlot) return
-      setLoading(true)
-      setClickCount(clickCount + 1)
-
-      try {
-        const compiledEvidence = 
-            evidence[0][0]+' - '+evidence[0][1]+', '+
-            evidence[1][0]+' - '+evidence[1][1]+', '+
-            evidence[2][0]+' - '+evidence[2][1]+', '+
-            evidence[3][0]+' - '+evidence[3][1]+'.'
-        
-        const res = await axios.post('/api/groq_cross_lawyer', {
-          message: '',
-          name: witnesses[personOfInterest][0],
-          title: witnesses[personOfInterest][1],
-          caseName: caseTitle, 
-          description: caseDescription, 
-          statement: witnesses[personOfInterest][2], 
-          evidence: compiledEvidence,
-        })
-        const botMessage = { sender: 'bot', text: res.data.reply }
-
-        await axios.post('/api/conversation_post', {
-          uid: user.uid,
-          slotId: activeSlot,
-          userMessage: '', // AI asked the question
-          botMessage: res.data.reply,
-          isOpen: true,
-        })
-
-        setMessages((prev) => [...prev, botMessage])
-      } catch (error) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: 'bot', text: '❌ Error generating AI question.' },
-        ])
-      } finally {
-        setLoading(false)
-        setQuery('')
-      }
-    }
+    
 
     const witnessBeingExamined = async () => {
       if (!user || !activeSlot) return
@@ -355,6 +403,11 @@ export default function Main() {
       setMessages((prev) => [...prev, userMessage]);
 
       try {
+        let compiledMessages = ""
+        for (const message of messages) {
+          compiledMessages += message.text + " "
+        }
+
         const compiledEvidence = 
             evidence[0][0]+' - '+evidence[0][1]+', '+
             evidence[1][0]+' - '+evidence[1][1]+', '+
@@ -369,6 +422,7 @@ export default function Main() {
           description: caseDescription, 
           statement: witnesses[personOfInterest][2], 
           evidence: compiledEvidence,
+          messages: compiledMessages,
         })
         const botMessage = { sender: 'bot', text: res.data.reply }
 
@@ -403,7 +457,7 @@ export default function Main() {
       }
       else {//** first bot open statements, then defense open statements */
         if (clickCount === 0) {
-          await prosecutionOpeningStatement();
+          //await prosecutionOpeningStatement();
         }
         else if (clickCount === 1) {
           await judgerOfStatements()
@@ -415,8 +469,8 @@ export default function Main() {
     } else if (caseRole === 'cross') {
       await examination()
     } else if (caseRole === 'witness') {
-      if (clickCount === 0) {
-        await witnessBeingExaminedStarter()
+      if (false) {
+        //await witnessBeingExaminedStarter()
       }
       else (
         await witnessBeingExamined()
@@ -427,9 +481,11 @@ export default function Main() {
   };
 
 
-  const generateCase = async (slotID) => {
+  const generateCase = async (slotID, returnValues) => {
     // e.preventDefault();
     if (!user || !activeSlot) return;
+
+    let returning = null;
 
     setLoading(true);
 
@@ -452,6 +508,13 @@ export default function Main() {
       setCaseTitle(otherStuff[0]+' vs. '+otherStuff[1]);
       setCaseDescription(otherStuff[2]);
       setPersonOfInterest(specialGuy);
+      returning = {
+        betterWitnesses: JSON.parse(witnessArray),
+        betterEvidence: JSON.parse(evidenceArray),
+        POI: JSON.parse(witnessArray)[specialGuy],
+        title: otherStuff[0]+' vs. '+otherStuff[1],
+        description: otherStuff[2],
+      }
 
       const responso = await axios.post('/api/case_generate', {
         uid: user.uid,
@@ -469,6 +532,8 @@ export default function Main() {
       fetchSlots();
       setLoading(false);
       setQuery('');
+      if (returnValues) {return returning;}
+      
     }
   };
 
