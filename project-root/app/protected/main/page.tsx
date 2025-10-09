@@ -5,6 +5,7 @@ import axios from 'axios';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { set } from 'mongoose';
 
 // import { deleteConversations } from '@/app/api/conversation_empty/route';
 
@@ -31,6 +32,8 @@ export default function Main() {
   const [caseIsOpen, setCaseIsOpen] = useState(true);
 
   const [clickCount, setClickCount] = useState(0);
+
+  const [feedback, setFeedback] = useState('')
 
   // Auth
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function Main() {
     setCaseSide(res.data.side);
     setPersonOfInterest(res.data.personOfInterest);
     setCaseIsOpen(res.data.isOpen);
-    setClickCount(0);
+    setClickCount(res.data.questions);
   };
 
   const fetchSlots = async () => {
@@ -93,6 +96,7 @@ export default function Main() {
           userMessage: '',
           botMessage: res.data.reply,
           isOpen: true,
+          clickCount: clickCount,
         });
 
         setMessages((prev) => [...prev, botMessage]);
@@ -111,7 +115,6 @@ export default function Main() {
     const witnessBeingExaminedStarter = async (slotID, betterEvidence, POI, title, description) => {
       if (!user) return
       setLoading(true)
-      setClickCount(clickCount + 1)
 
       try {
         const compiledEvidence = 
@@ -138,6 +141,7 @@ export default function Main() {
           userMessage: '', // AI asked the question
           botMessage: res.data.reply,
           isOpen: true,
+          clickCount: 0,
         })
 
         setMessages((prev) => [...prev, botMessage])
@@ -219,6 +223,42 @@ export default function Main() {
     e.preventDefault();
     if (!caseIsOpen) {return}
     setLoading(true);
+
+    if (clickCount > 8)
+    {
+      setCaseIsOpen(false)
+      const userMessage = { sender: 'user', text: query };
+      setMessages((prev) => [...prev, userMessage]);
+      if (caseRole === 'direct' || caseRole === 'cross') {
+        const botMessage = { sender: 'user', text: 'Thank you your Honor, I have no further questions at this time. ' };
+
+        await axios.post('/api/conversation_post', {
+          uid: user.uid,
+          slotId: activeSlot,
+          userMessage: 'Thank you your Honor, I have no further questions at this time. ',
+          botMessage: '',
+          isOpen: false,
+          clickCount: clickCount,
+        });
+        setMessages((prev) => [...prev, botMessage]);
+      }
+      else if (caseRole === 'witness') {
+        const botMessage = { sender: 'bot', text: 'Thank you your Honor, I have no further questions at this time. ' };
+
+        await axios.post('/api/conversation_post', {
+          uid: user.uid,
+          slotId: activeSlot,
+          userMessage: query,
+          botMessage: 'Thank you your Honor, I have no further questions at this time. ',
+          isOpen: false,
+          clickCount: clickCount,
+        });
+        setMessages((prev) => [...prev, botMessage]);
+      }
+      setLoading(false);
+      setQuery('');
+      return
+    }
     
 
     const questionWitness = async () => {
@@ -261,6 +301,7 @@ export default function Main() {
           userMessage: query,
           botMessage: res.data.reply,
           isOpen: true,
+          clickCount: clickCount,
         });
 
         setMessages((prev) => [...prev, botMessage]);
@@ -297,6 +338,7 @@ export default function Main() {
           userMessage: query,
           botMessage: res.data.reply,
           isOpen: false,
+          clickCount: clickCount,
         });
 
         setCaseIsOpen(false);
@@ -306,81 +348,6 @@ export default function Main() {
         setMessages((prev) => [
           ...prev,
           { sender: 'bot', text: '❌ Error fetching/saving conversation.' },
-        ]);
-      } finally {
-        setLoading(false);
-        setQuery('');
-      }
-    }
-
-    const prosecutionOpeningStatement = async () => {
-      if (!user || !activeSlot || messages.length>0) return;
-
-      setLoading(true);
-      setClickCount(clickCount + 1);
-
-      try {
-        const compiledWitnesses = 
-          witnesses[3][0]+' '+witnesses[3][1]+', said '+witnesses[3][2]+', '+
-          witnesses[4][0]+' '+witnesses[4][1]+', said '+witnesses[4][2]+', '+
-          witnesses[5][0]+' '+witnesses[5][1]+', said '+witnesses[5][2]+'. '
-        const res = await axios.post('/api/groq_statements', { message: 'Create an opening statement for the prosecution', witnesses: compiledWitnesses });
-        const botMessage = { sender: 'bot', text: res.data.reply };
-
-        await axios.post('/api/conversation_post', {
-          uid: user.uid,
-          slotId: activeSlot,
-          userMessage: '',
-          botMessage: res.data.reply,
-          isOpen: true,
-        });
-
-        setMessages((prev) => [...prev, botMessage]);
-      } catch (error) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: 'bot', text: '❌ Error fetching/saving conversation.' },
-        ]);
-      } finally {
-        setLoading(false);
-        setQuery('');
-      }
-    }
-
-    const judgerOfStatements = async () => {
-      //e.preventDefault();
-      if (!query.trim() || !user || !activeSlot) return;
-
-      console.log('\t\thello, testing')
-
-      const userMessage = { sender: 'user', text: query };
-      setMessages((prev) => [...prev, userMessage]);
-      setLoading(true);
-      setClickCount(clickCount + 1)
-
-      try {
-        const compiledMessages = messages.map((m) => (
-          m.text+' '
-        ))
-
-        const res = await axios.post('/api/groq_judge', { 
-          message: compiledMessages, side: caseSide,
-        });
-        const botMessage = { sender: 'bot', text: res.data.reply };
-
-        await axios.post('/api/conversation_post', {
-          uid: user.uid,
-          slotId: activeSlot,
-          userMessage: query,
-          botMessage: res.data.reply,
-          isOpen: true,
-        });
-
-        setMessages((prev) => [...prev, botMessage]);
-      } catch (error) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: 'bot', text: 'Error fetching/saving conversation.' },
         ]);
       } finally {
         setLoading(false);
@@ -432,6 +399,7 @@ export default function Main() {
           userMessage: query,
           botMessage: res.data.reply,
           isOpen: true,
+          clickCount: clickCount+1,
         })
 
         setMessages((prev) => [...prev,  botMessage])
@@ -451,16 +419,24 @@ export default function Main() {
         if (clickCount === 0) {
           await defenseOpeningStatement(); 
         }
-        else if (clickCount === 1) {
-          await judgerOfStatements()
-        }
       }
       else {//** first bot open statements, then defense open statements */
         if (clickCount === 0) {
-          //await prosecutionOpeningStatement();
-        }
-        else if (clickCount === 1) {
-          await judgerOfStatements()
+          setLoading(true)
+          await axios.post('/api/conversation_post', {
+            uid: user.uid,
+            slotId: activeSlot,
+            userMessage: query,
+            botMessage: '',
+            isOpen: false,
+            clickCount: 1,
+          });
+          setClickCount(1)
+          
+          setMessages((prev) => [...prev, { sender: 'user', text: query}])
+          setQuery('')
+          setCaseIsOpen(false);
+          setLoading(false)
         }
       }
 
@@ -469,16 +445,32 @@ export default function Main() {
     } else if (caseRole === 'cross') {
       await examination()
     } else if (caseRole === 'witness') {
-      if (false) {
-        //await witnessBeingExaminedStarter()
-      }
-      else (
-        await witnessBeingExamined()
-      )
-      
+      await witnessBeingExamined()
     }
     setLoading(false);
   };
+
+  const judgerOfStatements = async () => {
+    //e.preventDefault();
+    if (!query.trim() || !user || !activeSlot) return;
+
+    setLoading(true);
+
+    try {
+      const compiledMessages = messages.map(m => m.text).join(' ')
+
+      const res = await axios.post('/api/groq_judge', { 
+        message: compiledMessages, side: caseSide,
+      });
+
+      setFeedback(res.data.reply)
+      
+    } catch (error) {
+      setFeedback('Error fetching judge.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
 
   const generateCase = async (slotID, returnValues) => {
@@ -715,16 +707,23 @@ export default function Main() {
           </div>
         </aside>
 
-
+        
         {/* Main chat area */}
         <div className="ml-64 p-6 flex flex-row justify-center items-start">
 
           {/** The case Files */}
           {activeSlot ? 
-          <div className='flex flex-col mr-5 w-150'>
-              
+          <div className='flex flex-col items-center mr-5 w-150'>
+            <div className='flex flex-row'>
+              <h1 className='text-bold text-blue-950 text-5xl mt-9 mx-6 text-center font-oldenburg'>Case is</h1>
+              {caseIsOpen ? 
+              <h1 className='text-bold text-emerald-800 text-5xl mt-9 text-center font-oldenburg'>Open!</h1> 
+              : <h1 className='text-bold text-red-800 text-5xl mt-9 text-center font-oldenburg'>Closed.</h1>}
+            </div>
+
+            
+             
             <h1 className='text-bold text-blue-950 text-4xl mt-9 m-5 text-center font-oldenburg'>Case Files</h1>
-                  
             {/** Witnesses */}
             <div className='flex flew-row'>
 
@@ -774,7 +773,7 @@ export default function Main() {
                 {caseRole === 'witness' && ' '+(witnesses?.[personOfInterest]?.[0] ?? '')}
                 {caseRole === 'statements' && 'the opening and closing statement lawyer for the '+caseSide}
                 {caseRole === 'whole' && 'the lawyer for the whole case'}
-                </>.
+                </>.  {clickCount}
               </p>
             }
 
@@ -784,7 +783,7 @@ export default function Main() {
                 <div className="max-w-3xl w-full backdrop-blur rounded-2xl">
 
                   {/* Chat messages */}
-                  <div className="mb-4 max-h-150 overflow-y-auto border rounded-lg p-4 bg-gray-100">
+                  <div className="mb-4 max-h-130 overflow-y-auto border rounded-lg p-4 bg-gray-100">
                     {messages.length === 0 && (
                       <p className="text-center text-gray-500 italic">The Trial Stenographer</p>
                     )}
@@ -815,7 +814,7 @@ export default function Main() {
                       onChange={(e) => setQuery(e.target.value)}
                       rows={1}
                       className="flex-grow p-2 border rounded-lg shadow-sm bg-white focus:outline-none focus:ring focus:ring-blue-300 resize-none overflow-hidden"
-                      disabled={loading}
+                      disabled={loading || !caseIsOpen}
                       onInput={(e) => {
                         const target = e.target as HTMLTextAreaElement
                         target.style.height = "auto" // reset before recalculating
@@ -824,7 +823,7 @@ export default function Main() {
                     />
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || !caseIsOpen}
                       className="bg-blue-600 text-white py-2 px-4 rounded-full hover:bg-blue-500 transition disabled:opacity-50"
                     >
                       Send
@@ -834,6 +833,15 @@ export default function Main() {
                 </div>
               </main>
             : <p>Create a New Case to Begin</p>}
+
+            <div className='text-center mt-9'>
+              <button
+                className="bg-emerald-700 text-white py-2 px-4 rounded-xl hover:bg-emerald-600 transition disabled:opacity-50"
+                disabled={caseIsOpen || loading}
+                onClick={() => {judgerOfStatements(); console.log("hello")}}
+              >JUDGE ME</button>
+              <p>hello{feedback}</p>
+            </div>
           </div>
         </div>
 

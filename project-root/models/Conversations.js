@@ -18,6 +18,7 @@ const ConversationSchema = new mongoose.Schema({
   personOfInterest: { type: Number, required: false },
   side: { type: String, enum: ['prosecution', 'defense'], default: 'defense' },
   isOpen: { type: Boolean, default: true },
+  questions: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

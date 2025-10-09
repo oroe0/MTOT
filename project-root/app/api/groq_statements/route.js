@@ -31,9 +31,13 @@ export async function POST(req) {
 
                   'If I tell you to create an opening statement for the prosecution, you should write a good and fairly long opening statement to argue the case well. '+
                   
+                  
                   'In your opening statements, you are allowed to mention the following witnesses and how they will contribute to the case. '+
                   witnesses+
-                  'Do not provide anything more than the opening statement. '
+                  'Do not provide anything more than the opening statement. '+
+                  'Your statement should be around 250 words, if it is too much longer, than it will be too long to read. '+
+                  'If it is too much shorter, than it will be insufficient in covering everything. '+
+                  'Also, try to summarize what the opening statement will be about in the first part. '
         },
         // The user's message is what we want a response for
         { role: 'user', content: message },

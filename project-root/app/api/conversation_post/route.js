@@ -3,9 +3,9 @@ import Conversation from '@/models/Conversations';
 
 export async function POST(req) {
   try {
-    const { uid, slotId, userMessage, botMessage, isOpen } = await req.json();
+    const { uid, slotId, userMessage, botMessage, isOpen, clickCount } = await req.json();
 
-    if (!uid || !slotId || /*!userMessage ||*/ !botMessage  ) {
+    if (!uid || !slotId/* || !clickCount || !userMessage || !botMessage  */) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
     }
 
@@ -16,7 +16,7 @@ export async function POST(req) {
       { uid, slotId },
       {
         $setOnInsert: { uid, slotId, createdAt: now },
-        $set: { updatedAt: now, isOpen: isOpen },
+        $set: { updatedAt: now, isOpen: isOpen, questions: clickCount },
         $push: {
           messages: [
             { sender: 'user', text: userMessage, ts: now },

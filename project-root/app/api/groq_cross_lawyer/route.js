@@ -35,7 +35,8 @@ export async function POST(req) {
 
     if (messages === '') {
       contentMessage += 'Just before now, you have asked the following questions and the witness has responded in the following ways. '+
-                        messages
+                        messages+
+                        ' Do not repeat a question you have already asked, make sure to ask unique questions. '
     }
 
     // Create a new Groq client instance using your API key
