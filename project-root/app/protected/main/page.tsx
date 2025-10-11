@@ -451,8 +451,10 @@ export default function Main() {
   };
 
   const judgerOfStatements = async () => {
+
     //e.preventDefault();
-    if (!query.trim() || !user || !activeSlot) return;
+    if (!user || !activeSlot) return;
+
 
     setLoading(true);
 
@@ -834,14 +836,20 @@ export default function Main() {
               </main>
             : <p>Create a New Case to Begin</p>}
 
+            {activeSlot &&
+            
             <div className='text-center mt-9'>
-              <button
-                className="bg-emerald-700 text-white py-2 px-4 rounded-xl hover:bg-emerald-600 transition disabled:opacity-50"
-                disabled={caseIsOpen || loading}
-                onClick={() => {judgerOfStatements(); console.log("hello")}}
-              >JUDGE ME</button>
-              <p>hello{feedback}</p>
-            </div>
+              <div className="p-10">
+                <button 
+                  onClick={() => {alert('clicked'); setLoading(true); judgerOfStatements();}} 
+                  disabled={caseIsOpen || loading}
+                  className="bg-emerald-700 text-white py-2 px-4 rounded-xl hover:bg-emerald-600 transition disabled:opacity-50"
+                >
+                  JUDGE ME
+                </button>
+                <p className='pt-8'>{feedback}</p>
+              </div>
+            </div>}
           </div>
         </div>
 
