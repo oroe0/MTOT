@@ -2,7 +2,6 @@
   "name": "project",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://oroe0.github.io/MTOT",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
