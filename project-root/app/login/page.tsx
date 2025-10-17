@@ -18,7 +18,7 @@ export default function Login() {
   const [message, setMessage] = useState("");   
 
   // Runs when user clicks "Login"
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // stop refresh
     try {
       // Try to log the user in
@@ -30,8 +30,14 @@ export default function Login() {
       // Redirect to protected page
       router.push("/protected");
     } catch (err) {
-      // Show error if login fails
-      setMessage("Login failed, " + err.message);
+      if (err instanceof Error) {
+        // Show error if login fails
+        // handle known error type
+        setMessage("Login failed, " + err.message)
+      } else {
+        // fallback for unexpected error shapes
+        setMessage("Login failed due to an unknown error")
+      }
     }
   };
 

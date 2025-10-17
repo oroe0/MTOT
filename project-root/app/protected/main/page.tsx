@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { set } from 'mongoose';
@@ -11,14 +11,20 @@ import { set } from 'mongoose';
 
 export default function Main() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [query, setQuery] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
+  type Conversation = {
+    _id: string
+    slotId: number
+    title?: string
+  }
+
   // NEW: conversation slots
-  const [conversations, setConversations] = useState([]);
-  const [activeSlot, setActiveSlot] = useState(null);
+  const [conversations, setConversations] = useState<{ _id: string; slotId: number; title?: string }[]>([]);
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
 
   const [myCase, setMyCase] = useState({})
   const [witnesses, setWitnesses] = useState([])
@@ -57,6 +63,7 @@ export default function Main() {
   }, [user, activeSlot]);
 
   const fetchMessages = async () => {
+    if (!user) return
     const res = await axios.get('/api/conversation_get', { params: { uid: user.uid, slotId: activeSlot } });
     setMessages(res.data?.messages ?? []);
     setWitnesses(JSON.parse(res.data.witnesses));
@@ -71,13 +78,16 @@ export default function Main() {
   };
 
   const fetchSlots = async () => {
+    if (!user) return
     const res = await axios.get('/api/conversation_list', { params: { uid: user.uid } });
     setConversations(res.data);
     if (res.data.length > 0) setActiveSlot(res.data[0].slotId);
   };
 
-  const newConversation = async (Role) => {
-    const prosecutionOpeningStatement = async (betterWitnesses, slotID) => {
+  const newConversation = async (Role: string) => {
+    if (!user) return
+
+    const prosecutionOpeningStatement = async (betterWitnesses: string[][], slotID: number) => {
       if (!user) return;
 
       setLoading(true);
@@ -112,7 +122,7 @@ export default function Main() {
     }
 
     // 🔹 Witness role: AI asks questions, user responds
-    const witnessBeingExaminedStarter = async (slotID, betterEvidence, POI, title, description) => {
+    const witnessBeingExaminedStarter = async (slotID: number, betterEvidence: string[][], POI: string[], title: string, description: string) => {
       if (!user) return
       setLoading(true)
 
@@ -148,7 +158,7 @@ export default function Main() {
       } catch (error) {
         setMessages((prev) => [
           ...prev,
-          { sender: 'bot', text: '❌ Error generating AI question. OOGA BOOGA' },
+          { sender: 'bot', text: '❌ Error generating AI question.' },
         ])
       } finally {
         setLoading(false)
@@ -165,7 +175,10 @@ export default function Main() {
     setCaseSide(Side);
     if ((Role === 'witness') || (Role === 'statements' && Side === 'defense')) {
       console.log("ooga booga")
-      const {betterEvidence, betterWitnesses, POI, title, description} = await generateCase(res.data.slotId, true);
+
+      const result = await generateCase(res.data.slotId, true);
+      if (!result) return
+      const {betterEvidence, betterWitnesses, POI, title, description} = result
       if (Role === 'witness') {
         witnessBeingExaminedStarter(res.data.slotId, betterEvidence, POI, title, description)
       }
@@ -183,7 +196,7 @@ export default function Main() {
     router.push('/');
   };
 
-  const sendQuery = async (e) => {
+  const sendQuery = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!query.trim() || !user || !activeSlot) return;
 
@@ -219,9 +232,9 @@ export default function Main() {
 
   
 
-  const handleQueries = async (e) => {
+  const handleQueries = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!caseIsOpen) {return}
+    if (!caseIsOpen || !user) {return}
     setLoading(true);
 
     if (clickCount > 8)
@@ -475,7 +488,7 @@ export default function Main() {
   }
 
 
-  const generateCase = async (slotID, returnValues) => {
+  const generateCase = async (slotID: number, returnValues: boolean) => {
     // e.preventDefault();
     if (!user || !activeSlot) return;
 
@@ -532,13 +545,18 @@ export default function Main() {
   };
 
   const clearConversations = async () => {
+    if (!user) return
     setConversations([]);
     newConversation('whole');
     const res = await axios.post('/api/conversation_empty', { uid: user.uid });
   }
 
 
-  function Witness({ name, title, statement }) {
+  function Witness({ name, title, statement }: {
+    name: string
+    title: string
+    statement: string
+  }) {
     return (
       <div className='m-2'>
         <h3 className='text-1xl font-bold'>{name} - {title}</h3>
@@ -548,7 +566,10 @@ export default function Main() {
 
   }
 
-  function Evidence({ name, description }) {
+  function Evidence({ name, description }: {
+    name: string
+    description: string
+  }) {
     return (
       <div>
         <h3 className='font-bold'>{name}</h3>

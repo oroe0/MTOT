@@ -27,7 +27,7 @@ export default function Register() {
   const [message, setMessage] = useState("");   // message for success or errors
 
   // This runs when the user clicks "Sign Up"
-  const handleRegister = async (e) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // stop page from refreshing
     try {
       // Create the account in Firebase
@@ -39,8 +39,12 @@ export default function Register() {
       // Redirect user to the protected page after signing up
       router.push("/protected");
     } catch (err) {
-      // If there's an error, show the error message
-      setMessage("Registration failed, " + err.message);
+      if (err instanceof Error) {
+        // If there's an error, show the error message
+        setMessage("Registration failed, " + err.message);
+      } else {
+        setMessage("Registration failed due to an unknown error.")
+      }
     }
   };
 

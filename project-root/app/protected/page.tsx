@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from '@/firebase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 export default function Protected() {
     const router = useRouter();
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState<User | null>(null);
 
     // Auth
   useEffect(() => {
