@@ -283,6 +283,7 @@ export default function Main() {
       const userMessage = { sender: 'user', text: query };
       setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
+      setClickCount(clickCount + 1);
 
       try {
         let compiledMessages = ""
