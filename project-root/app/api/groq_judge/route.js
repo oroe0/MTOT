@@ -6,15 +6,54 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { message, side } = await req.json();
+    const { message, side, role } = await req.json();
 
     // If no message was sent, return an error response
-    if (!message) {
+    if (!message || !side || !role) {
       return new Response(
         JSON.stringify({ error: 'No message provided' }), 
         { status: 400 } // 400 means bad request
       );
     }
+
+    let contentStatement = 'You are a fantastic judge in the US. '+
+                  'You have been asked to help with highschool mock trial, and your role will be as the judge. '+
+                  'When I send you a list of messages, you need to grade them and give feedback. '+
+                  'You should first give a score from 1 to 10, with 1 being terrible, and 10 being fantastic. '+
+                  'You should be  harsh with your scoring, almost never give 10s, because a 10 means perfection. '+
+                  'This does not mean to be unfair, as a judge, you must always be fair. '+
+                  'If this person was really in court, how well would they do. Evaluate them as if they were a professional lawyer or a real witness. '
+
+    if (role === 'statements') {
+      contentStatement += 'You should only give feedback to the '+side+', do not give feedback to both sides, even if there are two different people talking. '+
+                  'Because opening or closing statements are being given, only give feedback to the person who gave the '+side+' statement. '
+    }
+    else if (role === 'direct') {
+      contentStatement += 'You should only give feedback to the lawyer who is speaking. You can almost ignore the witness. '+
+                  'The lawyer will be asking questions, and they should not be leading questions, or yes or no questions. They should be broad, but not super broad. '+
+                  'The lawyer should sound professional, and be getting all of the important information the witness knows. They are helping the witness. '
+    }
+    else if (role === 'witness') {
+      contentStatement += 'You should only give feedback to the witness, you can ignore the lawyer. '+
+                  'The witness must answer the question, but should answer it in a way that makes them look good. '+
+                  'They need to be honest, but also avoid the attacks of the lawyer. '
+    }
+    else if (role === 'cross') {
+      contentStatement += 'You should only give feedback to the lawyer, you can ignore the witness. The lawyer will be the one asking questions. '+
+                  'The lawyer should attack the witness, but not be too agressive. They need to poke holes in the witness testimony. '
+    }
+    else if (role === 'whole') {
+      contentStatement += ''
+    }
+
+    contentStatement += 'Your feedback must be 3 sentences, in addition to the grade. Make sure to include some things that the person could improve. '+
+                  'Do not mention your verdict as a judge, or which side you are leaning towards, only mention the quality of the work and how it can be improved. '+
+                  'You should first say "YOUR SCORE IS: __" where the blank is the score they recieved. Then tell them how to improve and why they got that score. '
+    
+
+
+
+
 
     // Create a new Groq client instance using your API key
     const groq = new Groq({ apiKey: GROQ_API_KEY });
@@ -24,21 +63,7 @@ export async function POST(req) {
       messages: [
         // The system message tells the assistant how to behave
         { role: 'system', 
-          content: 
-                  'You are a fantastic judge in the US. '+
-                  'You have been asked to help with highschool mock trial, and your role will be as the judge. '+
-                  'When I send you a list of messages, you need to grade them and give feedback. '+
-                  'You should first give a score from 1 to 10, with 1 being terrible, and 10 being fantastic. '+
-                  'You should be very harsh with your scoring, almost never give 10s, because a 10 means perfection. '+
-                  'It is okay to give 4s, 5s, or 6s. If this person was really in court, how well did they do. Evaluate them as if they were a professional lawyer. '+
-                  'You should  only give feedback to the '+side+', do not give feedback to both sides, even if there are two different people talking. '+
-                  'You may need to give feedback for various different roles, such as the opening statement, cross examination, direct examination, or feedback for the witness themself. '+
-                  'If a witness is being direct examined, give feedback to the lawyer (the direct examiner), not to the witness. '+
-                  'If a witness is being cross examined, give feedback to whichever person is on the '+side+
-                  'If opening or closing statements are being given, give feedback to the person who gave the '+side+' statement. '+
-                  'Your feedback must be 3 sentences or less, in addition to the grade. Make sure to include some things that the person could improve. '+
-                  'Do not mention your verdict as a judge, or which side you are leaning towards, only mention the quality of the work and how it can be improved. '+
-                  'You should first say "YOUR SCORE IS: __" where the blank is the score they recieved. Then tell them how to improve and why they got that score. '
+          content: contentStatement,
         },
         // The user's message is what we want a response for
         { role: 'user', content: message },

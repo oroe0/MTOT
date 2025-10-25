@@ -75,6 +75,7 @@ export default function Main() {
     setPersonOfInterest(res.data.personOfInterest);
     setCaseIsOpen(res.data.isOpen);
     setClickCount(res.data.questions);
+    setFeedback('');
   };
 
   const fetchSlots = async () => {
@@ -236,42 +237,6 @@ export default function Main() {
     e.preventDefault();
     if (!caseIsOpen || !user) {return}
     setLoading(true);
-
-    if (clickCount > 8)
-    {
-      setCaseIsOpen(false)
-      const userMessage = { sender: 'user', text: query };
-      setMessages((prev) => [...prev, userMessage]);
-      if (caseRole === 'direct' || caseRole === 'cross') {
-        const botMessage = { sender: 'user', text: 'Thank you your Honor, I have no further questions at this time. ' };
-
-        await axios.post('/api/conversation_post', {
-          uid: user.uid,
-          slotId: activeSlot,
-          userMessage: 'Thank you your Honor, I have no further questions at this time. ',
-          botMessage: '',
-          isOpen: false,
-          clickCount: clickCount,
-        });
-        setMessages((prev) => [...prev, botMessage]);
-      }
-      else if (caseRole === 'witness') {
-        const botMessage = { sender: 'bot', text: 'Thank you your Honor, I have no further questions at this time. ' };
-
-        await axios.post('/api/conversation_post', {
-          uid: user.uid,
-          slotId: activeSlot,
-          userMessage: query,
-          botMessage: 'Thank you your Honor, I have no further questions at this time. ',
-          isOpen: false,
-          clickCount: clickCount,
-        });
-        setMessages((prev) => [...prev, botMessage]);
-      }
-      setLoading(false);
-      setQuery('');
-      return
-    }
     
 
     const questionWitness = async () => {
@@ -461,6 +426,43 @@ export default function Main() {
     } else if (caseRole === 'witness') {
       await witnessBeingExamined()
     }
+
+    if (clickCount > 6)
+      {
+        setCaseIsOpen(false)
+        const userMessage = { sender: 'user', text: query };
+        setMessages((prev) => [...prev, userMessage]);
+        if (caseRole === 'direct' || caseRole === 'cross') {
+          const botMessage = { sender: 'user', text: 'Thank you your Honor, I have no further questions at this time. ' };
+  
+          await axios.post('/api/conversation_post', {
+            uid: user.uid,
+            slotId: activeSlot,
+            userMessage: 'Thank you your Honor, I have no further questions at this time. ',
+            botMessage: '',
+            isOpen: false,
+            clickCount: clickCount,
+          });
+          setMessages((prev) => [...prev, botMessage]);
+        }
+        else if (caseRole === 'witness') {
+          const botMessage = { sender: 'bot', text: 'Thank you your Honor, I have no further questions at this time. ' };
+  
+          await axios.post('/api/conversation_post', {
+            uid: user.uid,
+            slotId: activeSlot,
+            userMessage: query,
+            botMessage: 'Thank you your Honor, I have no further questions at this time. ',
+            isOpen: false,
+            clickCount: clickCount,
+          });
+          setMessages((prev) => [...prev, botMessage]);
+        }
+        setLoading(false);
+        setQuery('');
+        return
+      }
+
     setLoading(false);
   };
 
@@ -476,7 +478,7 @@ export default function Main() {
       const compiledMessages = messages.map(m => m.text).join(' ')
 
       const res = await axios.post('/api/groq_judge', { 
-        message: compiledMessages, side: caseSide,
+        message: compiledMessages, side: caseSide, role: caseRole,
       });
 
       setFeedback(res.data.reply)
