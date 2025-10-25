@@ -7,20 +7,12 @@ import { auth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { set } from 'mongoose';
 
-// import { deleteConversations } from '@/app/api/conversation_empty/route';
-
 export default function Main() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
-
-  type Conversation = {
-    _id: string
-    slotId: number
-    title?: string
-  }
 
   // NEW: conversation slots
   const [conversations, setConversations] = useState<{ _id: string; slotId: number; title?: string }[]>([]);
@@ -551,6 +543,20 @@ export default function Main() {
   const clearConversations = async () => {
     if (!user) return
     setConversations([]);
+
+    setActiveSlot(null)
+    setMessages([]);
+    setWitnesses([]);
+    setEvidence([]);
+    setCaseTitle('');
+    setCaseDescription('');
+    setCaseRole('');
+    setCaseSide('');
+    setPersonOfInterest(0);
+    setCaseIsOpen(false);
+    setClickCount(0);
+    setFeedback('');
+
     const res = await axios.post('/api/conversation_empty', { uid: user.uid });
   }
 
@@ -658,7 +664,7 @@ export default function Main() {
               }}
               className="block w-full text-left px-4 py-2 hover:bg-gray-100"
             >
-              Opening / Closing
+              Opening
             </button>
             <button
               onClick={() => {
@@ -798,7 +804,7 @@ export default function Main() {
                 {caseRole === 'cross' && 'cross examining '+(witnesses?.[personOfInterest]?.[0] ?? '')}
                 {caseRole === 'direct' && 'direct examining '+(witnesses?.[personOfInterest]?.[0] ?? '')}
                 {caseRole === 'witness' && ' '+(witnesses?.[personOfInterest]?.[0] ?? '')}
-                {caseRole === 'statements' && 'the opening and closing statement lawyer for the '+caseSide}
+                {caseRole === 'statements' && 'the opening statement lawyer for the '+caseSide}
                 {caseRole === 'whole' && 'the lawyer for the whole case'}
                 </>.
               </p>
