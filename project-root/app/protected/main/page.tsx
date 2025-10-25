@@ -180,7 +180,7 @@ export default function Main() {
       }
     }
     else {
-      generateCase(res.data.slotId, false);
+      await generateCase(res.data.slotId, false);
     }
   };
 
@@ -486,7 +486,7 @@ export default function Main() {
 
   const generateCase = async (slotID: number, returnValues: boolean) => {
     // e.preventDefault();
-    if (!user || !activeSlot) return;
+    if (!user || !slotID) return;
 
     let returning = null;
 

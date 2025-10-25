@@ -13,7 +13,7 @@ export async function POST(req) {
     const conversation = await Conversation.create({
       uid,
       slotId,
-      title: 'New Chat',
+      title: 'New Case',
       role: role,
       side: side,
       messages: [],
