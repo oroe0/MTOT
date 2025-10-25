@@ -470,6 +470,7 @@ export default function Main() {
 
     //e.preventDefault();
     if (!user || !activeSlot) return;
+    //alert('clicked');
 
 
     setLoading(true);
@@ -550,7 +551,6 @@ export default function Main() {
   const clearConversations = async () => {
     if (!user) return
     setConversations([]);
-    newConversation('direct');
     const res = await axios.post('/api/conversation_empty', { uid: user.uid });
   }
 
@@ -866,7 +866,7 @@ export default function Main() {
             <div className='text-center mt-9'>
               <div className="p-10">
                 <button 
-                  onClick={() => {alert('clicked'); setLoading(true); judgerOfStatements();}} 
+                  onClick={() => {setLoading(true); judgerOfStatements();}} 
                   disabled={caseIsOpen || loading}
                   className="bg-emerald-700 text-white py-2 px-4 rounded-xl hover:bg-emerald-600 transition disabled:opacity-50"
                 >

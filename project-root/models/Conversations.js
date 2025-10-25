@@ -14,7 +14,7 @@ const ConversationSchema = new mongoose.Schema({
   witnesses: { type: String, default: '[]' },
   evidence: { type: String, default: '[]' },
   description: { type: String, default: 'empty case'},
-  role: { type: String, enum: ['witness', 'statements', 'direct', 'cross', 'whole'], default: 'whole' },
+  role: { type: String, enum: ['witness', 'statements', 'direct', 'cross', 'whole'], default: 'direct' },
   personOfInterest: { type: Number, required: false },
   side: { type: String, enum: ['prosecution', 'defense'], default: 'defense' },
   isOpen: { type: Boolean, default: true },
