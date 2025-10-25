@@ -76,9 +76,9 @@ export default function Protected() {
                         </p>
                     </div>
                 </div>
-                <div className=''>
+                {/*<div className=''>
                     <p>stats</p>
-                </div>
+                </div>*/}
             </div>
         </div>
     )

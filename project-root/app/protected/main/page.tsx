@@ -548,7 +548,7 @@ export default function Main() {
   const clearConversations = async () => {
     if (!user) return
     setConversations([]);
-    newConversation('whole');
+    newConversation('direct');
     const res = await axios.post('/api/conversation_empty', { uid: user.uid });
   }
 
@@ -663,7 +663,8 @@ export default function Main() {
                 handleOption5()
                 setOpen(false)
               }}
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              disabled={true}
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 disabled:opacity-50"
             >
               Whole Case
             </button>
@@ -797,7 +798,7 @@ export default function Main() {
                 {caseRole === 'witness' && ' '+(witnesses?.[personOfInterest]?.[0] ?? '')}
                 {caseRole === 'statements' && 'the opening and closing statement lawyer for the '+caseSide}
                 {caseRole === 'whole' && 'the lawyer for the whole case'}
-                </>.  {clickCount}
+                </>.
               </p>
             }
 
