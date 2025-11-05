@@ -36,7 +36,7 @@ export async function POST(req) {
                   'You must speak in first person, and only speak about events you have knowledge about. '+
                   'If you are asked about something you should not know about, say you do not know. '+
                   'You should only answer the question, you do not need to talk about evertyhing you said before or all of the evidence. Focus on answering the question you are asked. '+
-                  'Your entire statement should be a single short paragraph. '+
+                  'Your entire statement should be a one or two sentences. Like around 30 words for a common response, or 60 for a very long response. '+
                   //'At certain times, it is okay to speak only a little, but generally you should respond with at least 1 sentence. '+
                   'If you are an expert witness, you may speak about what qualifies you. If you did something in this case (such as collect evidence), you must say what you have done and how you did it. '+
                   'You may not make up facts about the case, everything you say regarding the case must be the truth as you know it to be. '+

@@ -40,7 +40,8 @@ export async function POST(req) {
     }
     else if (role === 'cross') {
       contentStatement += 'You should only give feedback to the lawyer, you can ignore the witness. The lawyer will be the one asking questions. '+
-                  'The lawyer should attack the witness, but not be too agressive. They need to poke holes in the witness testimony. '
+                  'The lawyer should attack the witness, but not be too agressive. They need to poke holes in the witness testimony. '+
+                  'The lawyer should ask leading questions. They do not want the witness to narrate. They just want a short answer that hurts the witness and the other side. '
     }
     else if (role === 'whole') {
       contentStatement += ''
