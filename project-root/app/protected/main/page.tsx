@@ -1,6 +1,6 @@
 'use client'
 
-import { act, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from '@/firebase';
@@ -235,86 +235,56 @@ export default function Main() {
       //e.preventDefault();
       if (!query.trim() || !user || !activeSlot) return;
 
+      //console.log('\t\thello, testing')
+
       const userMessage = { sender: 'user', text: query };
       setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
       setClickCount(clickCount + 1);
 
-      const objection = await findObjection()
-      if (objection === '' || objection === "Error with objections."){
-        try {
-          let compiledMessages = ""
-          for (const message of messages) {
-            compiledMessages += message.text + " "
-          }
-  
-          const compiledEvidence = 
-              evidence[0][0]+' - '+evidence[0][1]+', '+
-              evidence[1][0]+' - '+evidence[1][1]+', '+
-              evidence[2][0]+' - '+evidence[2][1]+', '+
-              evidence[3][0]+' - '+evidence[3][1]+'.'
-  
-          const res = await axios.post('/api/groq_witness', { 
-            message: query,
-            name: witnesses[personOfInterest][0],
-            title: witnesses[personOfInterest][1],
-            caseName: caseTitle, 
-            description: caseDescription, 
-            statement: witnesses[personOfInterest][2], 
-            evidence: compiledEvidence,
-            messages: compiledMessages,
-          });
-          const botMessage = { sender: 'bot', text: res.data.reply };
-  
-          await axios.post('/api/conversation_post', {
-            uid: user.uid,
-            slotId: activeSlot,
-            userMessage: query,
-            botMessage: res.data.reply,
-            isOpen: true,
-            clickCount: clickCount,
-          });
-  
-          setMessages((prev) => [...prev, botMessage]);
-        } catch (error) {
-          setMessages((prev) => [
-            ...prev,
-            { sender: 'bot', text: 'Error fetching/saving conversation.' },
-          ]);
-        } finally {}
-      } else {
-        try {
-          if (!objection) return;
+      try {
+        let compiledMessages = ""
+        for (const message of messages) {
+          compiledMessages += message.text + " "
+        }
 
-          await axios.post('/api/conversation_post', {
-            uid: user.uid,
-            slotId: activeSlot,
-            userMessage: query,
-            botMessage: objection,
-            isOpen: true,
-            clickCount: clickCount,
-          });
+        const compiledEvidence = 
+            evidence[0][0]+' - '+evidence[0][1]+', '+
+            evidence[1][0]+' - '+evidence[1][1]+', '+
+            evidence[2][0]+' - '+evidence[2][1]+', '+
+            evidence[3][0]+' - '+evidence[3][1]+'.'
 
-          const botMessage = { sender: 'bot', text: objection };
+        const res = await axios.post('/api/groq_witness', { 
+          message: query,
+          name: witnesses[personOfInterest][0],
+          title: witnesses[personOfInterest][1],
+          caseName: caseTitle, 
+          description: caseDescription, 
+          statement: witnesses[personOfInterest][2], 
+          evidence: compiledEvidence,
+          messages: compiledMessages,
+        });
+        const botMessage = { sender: 'bot', text: res.data.reply };
 
-          setMessages((prev) => [...prev, botMessage]);
-        } catch (error) {
-          await axios.post('/api/conversation_post', {
-            uid: user.uid,
-            slotId: activeSlot,
-            userMessage: query,
-            botMessage: "Error, bad question.",
-            isOpen: true,
-            clickCount: clickCount,
-          });
-        } finally {}
+        await axios.post('/api/conversation_post', {
+          uid: user.uid,
+          slotId: activeSlot,
+          userMessage: query,
+          botMessage: res.data.reply,
+          isOpen: true,
+          clickCount: clickCount,
+        });
+
+        setMessages((prev) => [...prev, botMessage]);
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: 'bot', text: 'Error fetching/saving conversation.' },
+        ]);
+      } finally {
+        setLoading(false);
+        setQuery('');
       }
-      setQuery('');
-      setLoading(false);
-
-      //console.log('\t\thello, testing')
-
-      
     };
 
     const defenseOpeningStatement = async () => {
@@ -359,32 +329,6 @@ export default function Main() {
     // essentially useless
     const examination = async () => {
       await questionWitness()
-    }
-
-
-    const findObjection = async () => {
-      if (!user || !activeSlot) return;
-
-      let reply = '';
-
-      try {
-        const res = await axios.post('/api/groq_objecter', { 
-          message: query,
-          title: witnesses[personOfInterest][1], 
-          description: caseDescription, 
-          statement: witnesses[personOfInterest][2], 
-        });
-
-        if (res.data.reply !== "No Objection.") {
-          reply = res.data.reply;
-        }
-        
-
-      } catch (error) {
-        return "Error with objections."
-      } finally {
-        return reply
-      }
     }
 
     
@@ -433,7 +377,7 @@ export default function Main() {
       } catch (error) {
         setMessages((prev) => [
           ...prev,
-          { sender: 'bot', text: 'Error generating AI question.' },
+          { sender: 'bot', text: '❌ Error generating AI question.' },
         ])
       } finally {
         setLoading(false)
@@ -478,6 +422,8 @@ export default function Main() {
     if (clickCount > 6)
       {
         setCaseIsOpen(false)
+        const userMessage = { sender: 'user', text: query };
+        setMessages((prev) => [...prev, userMessage]);
         if (caseRole === 'direct' || caseRole === 'cross') {
           const botMessage = { sender: 'user', text: 'Thank you your Honor, I have no further questions at this time. ' };
   
@@ -497,7 +443,7 @@ export default function Main() {
           await axios.post('/api/conversation_post', {
             uid: user.uid,
             slotId: activeSlot,
-            userMessage: '',
+            userMessage: query,
             botMessage: 'Thank you your Honor, I have no further questions at this time. ',
             isOpen: false,
             clickCount: clickCount,
