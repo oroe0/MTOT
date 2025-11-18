@@ -1,6 +1,6 @@
 'use client'
 
-import { act, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from '@/firebase';
@@ -392,12 +392,6 @@ export default function Main() {
           setMessages((prev) => [...prev, { sender: 'objection', text: 'Error, bad question' }]);
         } finally {}
       }
-      setQuery('');
-      setLoading(false);
-
-      //console.log('\t\thello, testing')
-
-      
     };
 
     const answerJudge = async () => {
@@ -575,7 +569,7 @@ export default function Main() {
       } catch (error) {
         setMessages((prev) => [
           ...prev,
-          { sender: 'bot', text: 'Error generating AI question.' },
+          { sender: 'bot', text: '❌ Error generating AI question.' },
         ])
       } finally {
         setLoading(false)
@@ -620,6 +614,8 @@ export default function Main() {
     if (clickCount > 6)
       {
         setCaseIsOpen(false)
+        const userMessage = { sender: 'user', text: query };
+        setMessages((prev) => [...prev, userMessage]);
         if (caseRole === 'direct' || caseRole === 'cross') {
           const botMessage = { sender: 'user', text: 'Thank you your Honor, I have no further questions at this time. ' };
   
@@ -639,7 +635,7 @@ export default function Main() {
           await axios.post('/api/conversation_post', {
             uid: user.uid,
             slotId: activeSlot,
-            userMessage: '',
+            userMessage: query,
             botMessage: 'Thank you your Honor, I have no further questions at this time. ',
             isOpen: false,
             clickCount: clickCount,
