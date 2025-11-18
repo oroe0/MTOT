@@ -288,6 +288,8 @@ export default function Main() {
     e.preventDefault();
     if (!caseIsOpen || !user) {return}
     setLoading(true);
+
+    let trueClickCount = clickCount;
     
 
     const questionWitness = async (isForced: boolean) => {
@@ -304,12 +306,12 @@ export default function Main() {
 
       
       setMessages((prev) => [...prev, userMessage]);
-      setLoading(true);
 
 
       const objection = await findObjection()
       if (objection === '' || objection === "Error with objections." || isForced){
         setClickCount(clickCount + 1);
+        trueClickCount ++;
         try {
           
           let compiledMessages = ""
@@ -392,6 +394,7 @@ export default function Main() {
           setMessages((prev) => [...prev, { sender: 'objection', text: 'Error, bad question' }]);
         } finally {}
       }
+      setQuery('')
     };
 
     const answerJudge = async () => {
@@ -411,7 +414,6 @@ export default function Main() {
           message: messages[messages.length-2].text + messages[messages.length-1].text + query,
           role: caseRole,
         })
-        alert(res.data.reply)
 
         
         
@@ -454,6 +456,7 @@ export default function Main() {
       setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
       setClickCount(clickCount + 1);
+      trueClickCount++;
 
       try {
         const compiledWitnesses = 
@@ -529,6 +532,8 @@ export default function Main() {
       if (!user || !activeSlot) return
       setLoading(true)
       setClickCount(clickCount + 1)
+      trueClickCount ++;
+
       const userMessage = { sender: 'user', text: query };
       setMessages((prev) => [...prev, userMessage]);
 
