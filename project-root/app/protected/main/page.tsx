@@ -33,6 +33,8 @@ export default function Main() {
 
   const [feedback, setFeedback] = useState('')
 
+  const [answeringObjection, setAnsweringObjection] = useState(false)
+
   // Auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -42,17 +44,16 @@ export default function Main() {
     return () => unsubscribe();
   }, [router]);
 
-  // Load slots when user changes
+
   useEffect(() => {
     if (!user) return;
     fetchSlots();
-  }, [user]);
+  }, [user]); // This uses fetchSlots, anytime the user changes
 
-  // Load messages when slot changes
   useEffect(() => {
     if (!user || !activeSlot) return;
     fetchMessages();
-  }, [user, activeSlot]);
+  }, [user, activeSlot]); // This uses fetch messages anytime the slot (or user) changes
 
   const fetchMessages = async () => {
     if (!user) return
@@ -68,14 +69,17 @@ export default function Main() {
     setCaseIsOpen(res.data.isOpen);
     setClickCount(res.data.questions);
     setFeedback('');
-  };
+    setAnsweringObjection(false);
+  }; // Sets all of the variables to the correct thing associated with this case.
 
   const fetchSlots = async () => {
     if (!user) return
     const res = await axios.get('/api/conversation_list', { params: { uid: user.uid } });
     setConversations(res.data);
     if (res.data.length > 0) setActiveSlot(res.data[0].slotId);
-  };
+  }; // Gets all of the conversations of this user, than sets the conversation var to a list of all these convos.
+
+
 
   const newConversation = async (Role: string) => {
     if (!user) return
@@ -106,15 +110,14 @@ export default function Main() {
       } catch (error) {
         setMessages((prev) => [
           ...prev,
-          { sender: 'bot', text: '❌ Error fetching/saving conversation.' },
+          { sender: 'bot', text: 'Error fetching/saving conversation.' },
         ]);
       } finally {
         setLoading(false);
         setQuery('');
       }
-    }
+    } // Helper function. Sends the pros opening statement if needed
 
-    // 🔹 Witness role: AI asks questions, user responds
     const witnessBeingExaminedStarter = async (slotID: number, betterEvidence: string[][], POI: string[], title: string, description: string) => {
       if (!user) return
       setLoading(true)
@@ -157,7 +160,63 @@ export default function Main() {
         setLoading(false)
         setQuery('')
       }
-    }
+    } // Helper function. Sends the first AI cross examination question. Trust, this is a much better way to do it than before.
+
+    const generateCase = async (slotID: number, returnValues: boolean) => {
+      // e.preventDefault();
+      if (!user || !slotID) return;
+  
+      let returning = null;
+  
+      setLoading(true);
+  
+      try {
+        const res = await axios.post('/api/groq_cases', { message: 'Make a new case.' });
+        
+  
+        const splitResponse = res.data.reply.split('@') 
+  
+        const witnessArray = splitResponse[1]
+        const evidenceArray = splitResponse[2]
+        const otherStuff = JSON.parse(splitResponse[3])
+  
+        const randomValue = Math.random();
+  
+        const specialGuy = Math.trunc(randomValue*6);
+  
+        setWitnesses(JSON.parse(witnessArray))
+        setEvidence(JSON.parse(evidenceArray))
+        setCaseTitle(otherStuff[0]+' vs. '+otherStuff[1]);
+        setCaseDescription(otherStuff[2]);
+        setPersonOfInterest(specialGuy);
+        returning = {
+          betterWitnesses: JSON.parse(witnessArray),
+          betterEvidence: JSON.parse(evidenceArray),
+          POI: JSON.parse(witnessArray)[specialGuy],
+          title: otherStuff[0]+' vs. '+otherStuff[1],
+          description: otherStuff[2],
+        }
+  
+        const responso = await axios.post('/api/case_generate', {
+          uid: user.uid,
+          slotId: slotID,
+          witnesses: witnessArray,
+          evidence: evidenceArray,
+          description: otherStuff[2],
+          title: otherStuff[0]+' vs. '+otherStuff[1],
+          personOfInterest: specialGuy,
+        });
+  
+      } catch (error) {
+        console.log('\t\tBot Messaging Error.');
+      } finally {
+        fetchSlots();
+        setLoading(false);
+        setQuery('');
+        if (returnValues) {return returning;}
+        
+      }
+    }; // Helper function. Actually creates the case info.
 
     const Side = Math.random() > 0.5 ? 'prosecution' : 'defense'
     const res = await axios.post('/api/conversation_new', { uid: user.uid, role: Role, side: Side });
@@ -167,7 +226,6 @@ export default function Main() {
     setCaseRole(Role);
     setCaseSide(Side);
     if ((Role === 'witness') || (Role === 'statements' && Side === 'defense')) {
-      console.log("ooga booga")
 
       const result = await generateCase(res.data.slotId, true);
       if (!result) return
@@ -182,7 +240,8 @@ export default function Main() {
     else {
       await generateCase(res.data.slotId, false);
     }
-  };
+  }; // This begins a new case with the given role.
+
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -221,7 +280,7 @@ export default function Main() {
       setLoading(false);
       setQuery('');
     }
-  };
+  }; // Deprecated function to send a query. Can be used as a base function based on a button inside a form element.
 
   
 
@@ -231,18 +290,28 @@ export default function Main() {
     setLoading(true);
     
 
-    const questionWitness = async () => {
+    const questionWitness = async (isForced: boolean) => {
       //e.preventDefault();
       if (!query.trim() || !user || !activeSlot) return;
+      
+      let userMessage = { sender: '', text: ''};
+      if (isForced) {
+        userMessage = { sender: 'user', text: messages[messages.length-2].text };
+      }
+      else {
+        userMessage = { sender: 'user', text: query };
+      }
 
-      const userMessage = { sender: 'user', text: query };
+      
       setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
-      setClickCount(clickCount + 1);
+
 
       const objection = await findObjection()
-      if (objection === '' || objection === "Error with objections."){
+      if (objection === '' || objection === "Error with objections." || isForced){
+        setClickCount(clickCount + 1);
         try {
+          
           let compiledMessages = ""
           for (const message of messages) {
             compiledMessages += message.text + " "
@@ -253,27 +322,56 @@ export default function Main() {
               evidence[1][0]+' - '+evidence[1][1]+', '+
               evidence[2][0]+' - '+evidence[2][1]+', '+
               evidence[3][0]+' - '+evidence[3][1]+'.'
+
+          let res = { data: { reply: '' } };
+          if (!isForced) {
+            res = await axios.post('/api/groq_witness', { 
+              message: query,
+              name: witnesses[personOfInterest][0],
+              title: witnesses[personOfInterest][1],
+              caseName: caseTitle, 
+              description: caseDescription, 
+              statement: witnesses[personOfInterest][2], 
+              evidence: compiledEvidence,
+              messages: compiledMessages,
+            });
+          }
+          else {
+            res = await axios.post('/api/groq_witness', { 
+              message: messages[messages.length-2].text,
+              name: witnesses[personOfInterest][0],
+              title: witnesses[personOfInterest][1],
+              caseName: caseTitle, 
+              description: caseDescription, 
+              statement: witnesses[personOfInterest][2], 
+              evidence: compiledEvidence,
+              messages: compiledMessages,
+            });
+          }
   
-          const res = await axios.post('/api/groq_witness', { 
-            message: query,
-            name: witnesses[personOfInterest][0],
-            title: witnesses[personOfInterest][1],
-            caseName: caseTitle, 
-            description: caseDescription, 
-            statement: witnesses[personOfInterest][2], 
-            evidence: compiledEvidence,
-            messages: compiledMessages,
-          });
+          
           const botMessage = { sender: 'bot', text: res.data.reply };
-  
-          await axios.post('/api/conversation_post', {
-            uid: user.uid,
-            slotId: activeSlot,
-            userMessage: query,
-            botMessage: res.data.reply,
-            isOpen: true,
-            clickCount: clickCount,
-          });
+          
+          if (!isForced) {
+            await axios.post('/api/conversation_post', {
+              uid: user.uid,
+              slotId: activeSlot,
+              userMessage: query,
+              botMessage: res.data.reply,
+              isOpen: true,
+              clickCount: clickCount,
+            });
+          }
+          else {
+            await axios.post('/api/conversation_post', {
+              uid: user.uid,
+              slotId: activeSlot,
+              userMessage: messages[messages.length-2].text,
+              botMessage: res.data.reply,
+              isOpen: true,
+              clickCount: clickCount,
+            });
+          }
   
           setMessages((prev) => [...prev, botMessage]);
         } catch (error) {
@@ -285,28 +383,13 @@ export default function Main() {
       } else {
         try {
           if (!objection) return;
+          setAnsweringObjection(true)
 
-          await axios.post('/api/conversation_post', {
-            uid: user.uid,
-            slotId: activeSlot,
-            userMessage: query,
-            botMessage: objection,
-            isOpen: true,
-            clickCount: clickCount,
-          });
-
-          const botMessage = { sender: 'bot', text: objection };
+          const botMessage = { sender: 'objection', text: objection };
 
           setMessages((prev) => [...prev, botMessage]);
         } catch (error) {
-          await axios.post('/api/conversation_post', {
-            uid: user.uid,
-            slotId: activeSlot,
-            userMessage: query,
-            botMessage: "Error, bad question.",
-            isOpen: true,
-            clickCount: clickCount,
-          });
+          setMessages((prev) => [...prev, { sender: 'objection', text: 'Error, bad question' }]);
         } finally {}
       }
       setQuery('');
@@ -316,6 +399,59 @@ export default function Main() {
 
       
     };
+
+    const answerJudge = async () => {
+      if (!query.trim() || !user || !activeSlot) return;
+
+      setLoading(true)
+      
+      const objectedQuestion = { sender: 'user', text: messages[messages.length-2].text }
+      const objection = { sender: 'objection', text: messages[messages.length-1].text }
+      const userMessage = { sender: 'user', text: query };
+      let overruled = false;
+      
+
+      
+      try {
+        const res = await axios.post('/api/groq_inspector', {
+          message: messages[messages.length-2].text + messages[messages.length-1].text + query,
+          role: caseRole,
+        })
+        alert(res.data.reply)
+
+        
+        
+        let judgeMessage = { sender: 'judge', text: '' }
+
+        if (res.data.reply === 'Sustained.') {
+          judgeMessage.text = 'Sustained. Ask a different question.'
+        }
+        else if (res.data.reply === 'Overruled.') {
+          judgeMessage.text = 'Overrulled.' 
+          overruled = true;
+        }
+        
+        
+        await axios.post('/api/conversation_objection', {
+          uid: user.uid,
+          slotId: activeSlot,
+          userMessage: messages[messages.length-2].text,
+          botMessage: messages[messages.length-1].text,
+          response: query,
+          judgeMessage:  judgeMessage.text,
+        })
+        setMessages((prev) => [...prev, userMessage, judgeMessage]);
+
+      } catch (error) {
+        setMessages((prev) => [...prev, userMessage, { sender: 'judge', text: 'Error judging statement' }]);
+      } finally {
+        if (overruled) {await questionWitness(true);}
+
+        setAnsweringObjection(false)
+        setLoading(false)
+        setQuery('')
+      }
+    } // Helper function. Allows the user to respond to an objection instead of having no choice.
 
     const defenseOpeningStatement = async () => {
       if (!query.trim() || !user || !activeSlot) return;
@@ -356,9 +492,14 @@ export default function Main() {
       }
     }
     
-    // essentially useless
+    // Not essentially useless anymore. Not super helpful though.
     const examination = async () => {
-      await questionWitness()
+      if (!answeringObjection) {
+        await questionWitness(false)
+      }
+      else {
+        await answerJudge()
+      }
     }
 
 
@@ -373,6 +514,7 @@ export default function Main() {
           title: witnesses[personOfInterest][1], 
           description: caseDescription, 
           statement: witnesses[personOfInterest][2], 
+          role: caseRole,
         });
 
         if (res.data.reply !== "No Objection.") {
@@ -385,7 +527,7 @@ export default function Main() {
       } finally {
         return reply
       }
-    }
+    } // Helper function. Sends the message to Groq Objector and returns objections
 
     
 
@@ -510,7 +652,7 @@ export default function Main() {
       }
 
     setLoading(false);
-  };
+  };  // The Main function that runs most of this platform. Handles what happens when you send a message.
 
   const judgerOfStatements = async () => {
 
@@ -535,64 +677,8 @@ export default function Main() {
     } finally {
       setLoading(false);
     }
-  }
+  } // Button function. This is the function that provides feedback. It works almost like a standalone funtion, with the button below.
 
-
-  const generateCase = async (slotID: number, returnValues: boolean) => {
-    // e.preventDefault();
-    if (!user || !slotID) return;
-
-    let returning = null;
-
-    setLoading(true);
-
-    try {
-      const res = await axios.post('/api/groq_cases', { message: 'Make a new case.' });
-      
-
-      const splitResponse = res.data.reply.split('@') 
-
-      const witnessArray = splitResponse[1]
-      const evidenceArray = splitResponse[2]
-      const otherStuff = JSON.parse(splitResponse[3])
-
-      const randomValue = Math.random();
-
-      const specialGuy = Math.trunc(randomValue*6);
-
-      setWitnesses(JSON.parse(witnessArray))
-      setEvidence(JSON.parse(evidenceArray))
-      setCaseTitle(otherStuff[0]+' vs. '+otherStuff[1]);
-      setCaseDescription(otherStuff[2]);
-      setPersonOfInterest(specialGuy);
-      returning = {
-        betterWitnesses: JSON.parse(witnessArray),
-        betterEvidence: JSON.parse(evidenceArray),
-        POI: JSON.parse(witnessArray)[specialGuy],
-        title: otherStuff[0]+' vs. '+otherStuff[1],
-        description: otherStuff[2],
-      }
-
-      const responso = await axios.post('/api/case_generate', {
-        uid: user.uid,
-        slotId: slotID,
-        witnesses: witnessArray,
-        evidence: evidenceArray,
-        description: otherStuff[2],
-        title: otherStuff[0]+' vs. '+otherStuff[1],
-        personOfInterest: specialGuy,
-      });
-
-    } catch (error) {
-      console.log('\t\tBot Messaging Error.');
-    } finally {
-      fetchSlots();
-      setLoading(false);
-      setQuery('');
-      if (returnValues) {return returning;}
-      
-    }
-  };
 
   const clearConversations = async () => {
     if (!user) return
@@ -612,7 +698,7 @@ export default function Main() {
     setFeedback('');
 
     const res = await axios.post('/api/conversation_empty', { uid: user.uid });
-  }
+  } // Button function. Used to clear all convos and reset all variables.
 
 
   function Witness({ name, title, statement }: {
@@ -627,7 +713,7 @@ export default function Main() {
       </div>
     )
 
-  }
+  } // Just makes witnesses easier
 
   function Evidence({ name, description }: {
     name: string
@@ -639,7 +725,7 @@ export default function Main() {
         <p>{description}</p>
       </div>
     )
-  }
+  } // Just makes evidence easier
 
   function DropdownButton() {
     const [open, setOpen] = useState(false)
@@ -734,7 +820,7 @@ export default function Main() {
         )}
       </div>
     )
-  }
+  } // Button that allows you to choose your role
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-r from-yellow-200 via-stone-400 to-blue-900 text-gray-900 font-petrona">
@@ -760,8 +846,6 @@ export default function Main() {
 
       {/** Main area of the page */}
       <div className="flex flex-1 pt-24">
-
-        
 
         {/* Sidebar */}
         <aside className="fixed top-0 left-0 w-64 h-screen bg-zinc-200/80 border-r shadow-lg flex flex-col pt-24 p-4">
@@ -795,20 +879,20 @@ export default function Main() {
         </aside>
 
         
-        {/* Main chat area */}
+        {/* The REAL Main area */}
         <div className="ml-64 p-6 flex flex-row justify-center items-start">
 
           {/** The case Files */}
           {activeSlot ? 
           <div className='flex flex-col items-center mr-5 w-150'>
+
+            {/* Case is ... */}
             <div className='flex flex-row'>
               <h1 className='text-bold text-blue-950 text-5xl mt-9 mx-6 text-center font-oldenburg'>Case is</h1>
               {caseIsOpen ? 
               <h1 className='text-bold text-emerald-800 text-5xl mt-9 text-center font-oldenburg'>Open!</h1> 
               : <h1 className='text-bold text-red-800 text-5xl mt-9 text-center font-oldenburg'>Closed.</h1>}
             </div>
-
-            
              
             <h1 className='text-bold text-blue-950 text-4xl mt-9 m-5 text-center font-oldenburg'>Case Files</h1>
             {/** Witnesses */}
@@ -849,8 +933,10 @@ export default function Main() {
           : <p></p>}
           
 
-
+          {/* The grey box on the side */}
           <div className="w-135 bg-zinc-200 rounded-3xl shadow-lg p-6 mb-4">
+
+            {/* The top part, above messages */}
             <h1 className="text-xl font-bold mb-2 text-center">{caseTitle}</h1>
             <p>{caseDescription}</p>
             {caseRole &&
@@ -870,7 +956,7 @@ export default function Main() {
                 <div className="max-w-3xl w-full backdrop-blur rounded-2xl">
 
                   {/* Chat messages */}
-                  <div className="mb-4 max-h-130 overflow-y-auto border rounded-lg p-4 bg-gray-100">
+                  <div className="mb-4 max-h-100 overflow-y-auto border rounded-lg p-4 bg-gray-100">
                     {messages.length === 0 && (
                       <p className="text-center text-gray-500 italic">The Trial Stenographer</p>
                     )}
@@ -878,14 +964,21 @@ export default function Main() {
                       <p
                         key={i}
                         className={`whitespace-pre-wrap mb-2 p-2 rounded-lg shadow-sm ${
-                          msg.sender === 'user'
-                            ? 'bg-sky-100 text-zinc-900'
-                            : 'bg-rose-100 text-slate-900'
+                          msg.sender === 'user' ? 'bg-sky-100 text-zinc-900' :
+                          (msg.sender === 'judge' ? 'bg-emerald-100 text-neutral-900' :
+                            'bg-rose-100 text-slate-900')
+                            
                         }`}
                       >
                         {msg.text && (
                           <>
-                            <strong>{msg.sender === 'user' ? 'You' : (caseRole!=='direct' ? 'Adversary' : (witnesses?.[personOfInterest]?.[0] ?? ''))}:</strong>{' '}
+                            <strong>
+                              {msg.sender === 'user' ? 'You' : 
+                              (msg.sender === 'judge' ? 'Judge' : 
+                              (((caseRole!=='direct' && caseRole!=='cross') || msg.sender === 'objection') ? 'Adversary' : 
+                              (witnesses?.[personOfInterest]?.[0] ?? '')))
+                              }:
+                            </strong>{' '}
                             {msg.text}
                           </>
                         )}
@@ -921,20 +1014,24 @@ export default function Main() {
               </main>
             : <p>Create a New Case to Begin</p>}
 
+            {/* The Judge Me button and feedback */}
             {activeSlot &&
-            
             <div className='text-center mt-9'>
               <div className="p-10">
+                {(!caseIsOpen && feedback === '') && 
                 <button 
                   onClick={() => {setLoading(true); judgerOfStatements();}} 
-                  disabled={caseIsOpen || loading}
+                  disabled={loading}
                   className="bg-emerald-700 text-white py-2 px-4 rounded-xl hover:bg-emerald-600 transition disabled:opacity-50"
                 >
                   JUDGE ME
                 </button>
-                <p className='pt-8'>{feedback}</p>
+                }
+                
+                <p className='pt-0'>{feedback}</p>
               </div>
             </div>}
+
           </div>
         </div>
 

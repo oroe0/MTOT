@@ -1,5 +1,8 @@
+
+
 import Image from "next/image"
 import Link from "next/link"
+
 
 export default function Home() {
   return (
@@ -118,6 +121,7 @@ export default function Home() {
       <footer className="bg-slate-900 text-white py-6 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center px-6 max-w-6xl mx-auto">
           <p>&copy; {new Date().getFullYear()} Mock Trial Online Trainer. All rights reserved.</p>
+          
           {/*<div className="flex space-x-4 mt-3 md:mt-0">
             <Link href="/about" className="hover:text-yellow-400 transition">About</Link>
             <Link href="oroe28@punahou.edu" className="hover:text-yellow-400 transition">Email</Link>

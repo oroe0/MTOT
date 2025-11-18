@@ -6,7 +6,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { message, desription, title, statement, role } = await req.json();
+    const { message, role } = await req.json();
 
     // If no message was sent, return an error response
     if (!message) {
@@ -16,24 +16,14 @@ export async function POST(req) {
       );
     }
 
-    let objectionInstructions = 'You are a fantastic lawyer in the US. You are very humble so you do not want to talk any more than you need to. '+
-                  'You will be given a question that is being asked to a witness. Your job is to determine whether or not this question is allowed in the court of law. '+
-                  'You must respond in one of two ways, with "No Objection.", or with "Objection your Honor, _____!" The blank is the type of objection. '+
-                  'For example, you might object that the given question is irrelevant by saying "Objection your Honor, relevance!". '+
-                  'Sometimes, the question you are given does not warrant an objection, so you should say "No Objection.". '+
-                  'You should only say "No Objection." or "Objection your Honor, _____!". DO NOT INCLUDE ANYTHING ELSE. ONLY PROVIDE THOSE WORDS. '+
-                  'Do not provide reasoning for your decision or anything else. '+
-                  'Make sure that your determination follows the following rules and is correct. '+
-                  
-                  'The only objections you are allowed to use are as follows: '+
-                  'Leading, only warrants a yes or no answer. Narration, warrants a long answer. '+
-                  'Improper Opinion, witness is not an expert in the subject. Speculation, asks for something the witness would have to guess about. '+
-                  'Relevance, the question is not relevant to the case. Hearsay, the question asks for the witness to say something they were told. '+
-                  'Compound, this question asks multiple questions. Argumentative, the question insults the witness. '+
+    let objectionInstructions = 'You are a fantastic judge in the US. You are very humble so you do not want to talk any more than you need to. '+
+                  'You will be given a question that is being asked to a witness, along with an objection from a lawyer and a response from the lawyer who asked the question. Your job is to determine whether or not this question is allowed in the court of law. '+
+                  'You must respond in one of two ways, with "Sustained." or "Overruled." '+
+                  'You must only determine if the given objection fits the question, not necessarily whether the question is bad. '+
+                  'For example, if you are given an irrelevant question, but the objection is speculation, you should say "Overruled." '+
+                  'If the objection fits the question and the lawyer can not provide a valid response, you must say "Sustained" '+
+                  'If the only response the lawyer has is "no", you should say "Sustained." '
 
-                  'In order to determine whether or not there is an objection, you may use the following information. '+
-                  'The question that you are given is from the following case: '+desription+
-                  'This question is being asked to a '+title+' who previously has made this statement to the police '+statement
                   
     
     if (role === 'cross') objectionInstructions += ' Remember to consider that this is a cross examination, so leading questions are allowed. ';
@@ -50,7 +40,7 @@ export async function POST(req) {
           content: objectionInstructions
         },
         // The user's message is what we want a response for
-        { role: 'user', content: 'Evaluate this question: '+message },
+        { role: 'user', content: 'Evaluate the following: '+message },
       ],
       model: 'meta-llama/llama-4-scout-17b-16e-instruct', // The AI model to use
       temperature: 1,              // Controls randomness: 1 = normal, 0 = deterministic

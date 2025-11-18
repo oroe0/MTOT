@@ -20,7 +20,9 @@ export async function POST(req) {
                   'You have been asked to help with highschool mock trial, and your role will be as the judge. '+
                   'When I send you a list of messages, you need to grade them and give feedback. '+
                   'You should first give a score from 1 to 10, with 1 being terrible, and 10 being fantastic. '+
-                  'You should be  harsh with your scoring, almost never give 10s, because a 10 means perfection. '+
+                  'Treat the person being judged like an actual lawyer. If they use all caps at odd times, or just seem wierd and unprofessional, do not hesitate to give them a 1 or 2. '+
+                  'You should be very harsh with your scoring, almost never give 10s, because a 10 means perfection. '+
+                  'If the person is very very good, responds to objections well, is very professional, has good questions, and understands the topic, you can give them a 9. '+
                   'This does not mean to be unfair, as a judge, you must always be fair. '+
                   'If this person was really in court, how well would they do. Evaluate them as if they were a professional lawyer or a real witness. '
 
@@ -49,7 +51,7 @@ export async function POST(req) {
 
     contentStatement += 'Your feedback must be 3 sentences, in addition to the grade. Make sure to include some things that the person could improve. '+
                   'Do not mention your verdict as a judge, or which side you are leaning towards, only mention the quality of the work and how it can be improved. '+
-                  'You should first say "YOUR SCORE IS: __" where the blank is the score they recieved. Then tell them how to improve and why they got that score. '
+                  'You should first say "YOUR SCORE IS: __/10" where the blank is the score they recieved. Then tell them how to improve and why they got that score. '
     
 
 
@@ -79,10 +81,8 @@ export async function POST(req) {
 
     // Extract the text reply from the API response
     const reply = chatCompletion.choices[0]?.message?.content || 'No response.';
-    console.log(message)
 
     // Send back the reply as JSON with status 200 (OK)
-    console.log("\t\t Testing")
     return new Response(
       JSON.stringify({ reply }),
       {

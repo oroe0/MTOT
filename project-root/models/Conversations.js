@@ -1,10 +1,18 @@
 import mongoose from 'mongoose';
 
 const MessageSchema = new mongoose.Schema({
-  sender: { type: String, enum: ['user', 'bot'], required: true },
+  sender: { type: String, enum: ['user', 'bot', 'objection', 'judge'], required: true },
   text: { type: String, required: true },
   ts: { type: Date, default: Date.now },
 });
+
+const WitnessSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  title: { type: String, required: true },
+  statement: { type: String, required: true },
+}) //                 Do this LATER. It requires changing a lot of things. Once objections are complete, you can begin work on this.
+
+
 
 const ConversationSchema = new mongoose.Schema({
   uid: { type: String, required: true },         // Firebase user id
