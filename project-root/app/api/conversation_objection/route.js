@@ -1,0 +1,40 @@
+import mongooseConnect from '@/lib/mongoose';
+import Conversation from '@/models/Conversations';
+
+export async function POST(req) {
+  try {
+    const { uid, slotId, userMessage, botMessage, response, judgeMessage } = await req.json();
+
+    if (!uid || !slotId || !userMessage || !botMessage || !response || !judgeMessage) {
+      return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
+    }
+
+    await mongooseConnect();
+    const now = new Date();
+
+    const conversation = await Conversation.findOneAndUpdate(
+      { uid, slotId },
+      {
+        $setOnInsert: { uid, slotId, createdAt: now },
+        $set: { updatedAt: now, },
+        $push: {
+          messages: [
+            { sender: 'user', text: userMessage, ts: now },
+            { sender: 'objection', text: botMessage, ts: now },
+            { sender: 'user', text: response, ts: now },
+            { sender: 'judge', text: judgeMessage, ts: now },
+          ],
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    return new Response(JSON.stringify(conversation), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('POST conversation error:', error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+}

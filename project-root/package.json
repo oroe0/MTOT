@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d out"
   },
   "dependencies": {
+    "@huggingface/inference": "^4.13.3",
     "axios": "^1.11.0",
     "firebase": "^12.1.0",
     "groq-sdk": "^0.30.0",
