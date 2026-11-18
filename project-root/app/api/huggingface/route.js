@@ -9,10 +9,10 @@ const HF_TOKEN = process.env.HF_TOKEN;
 export async function POST(req) {
   try {
     // Get the JSON data sent from the frontend (we expect a "message" property)
-    const { prompt } = await req.json();
+    const { prompt, saveLocation } = await req.json();
 
     // If no message was sent, return an error response
-    if (!prompt) {
+    if (!prompt || !saveLocation) {
       return new Response(
         JSON.stringify({ error: 'No prompt provided' }), 
         { status: 400 } // 400 means bad request
@@ -33,7 +33,7 @@ export async function POST(req) {
     const arrayBuffer = await image.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    fs.writeFile('test.jpg', buffer, (err) => {
+    fs.writeFile(saveLocation, buffer, (err) => {
         if (err) {
             console.log('errror'+ err)
         }

@@ -30,6 +30,7 @@ export async function POST(req) {
                   'Improper Opinion, witness is not an expert in the subject. Speculation, asks for something the witness would have to guess about. '+
                   'Relevance, the question is not relevant to the case. Hearsay, the question asks for the witness to say something they were told. '+
                   'Compound, this question asks multiple questions. Argumentative, the question insults the witness. '+
+                  'Foundation, this question has not been properly lead up to and lacks foundation. '+
 
                   'In order to determine whether or not there is an objection, you may use the following information. '+
                   'The question that you are given is from the following case: '+desription+
@@ -52,7 +53,7 @@ export async function POST(req) {
         // The user's message is what we want a response for
         { role: 'user', content: 'Evaluate this question: '+message },
       ],
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct', // The AI model to use
+      model: 'openai/gpt-oss-120b', // The AI model to use
       temperature: 1,              // Controls randomness: 1 = normal, 0 = deterministic
       max_completion_tokens: 1024, // Max length of the reply
       top_p: 1,                   // Controls diversity of the output

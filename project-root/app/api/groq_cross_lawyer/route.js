@@ -52,7 +52,7 @@ export async function POST(req) {
         // The user's message is what we want a response for
         { role: 'user', content: theMessage },
       ],
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct', // The AI model to use
+      model: 'openai/gpt-oss-120b', // The AI model to use
       temperature: 1,              // Controls randomness: 1 = normal, 0 = deterministic
       max_completion_tokens: 1024, // Max length of the reply
       top_p: 1,                   // Controls diversity of the output

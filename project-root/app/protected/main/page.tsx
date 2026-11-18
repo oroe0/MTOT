@@ -394,7 +394,6 @@ export default function Main() {
           setMessages((prev) => [...prev, { sender: 'objection', text: 'Error, bad question' }]);
         } finally {}
       }
-      setQuery('')
     };
 
     const answerJudge = async () => {
@@ -411,7 +410,7 @@ export default function Main() {
       
       try {
         const res = await axios.post('/api/groq_inspector', {
-          message: messages[messages.length-2].text + messages[messages.length-1].text + query,
+          message: messages[messages.length-2].text + ' ' + messages[messages.length-1].text + ' ' + query,
           role: caseRole,
         })
 
@@ -652,6 +651,7 @@ export default function Main() {
         return
       }
 
+    setQuery('')
     setLoading(false);
   };  // The Main function that runs most of this platform. Handles what happens when you send a message.
 
